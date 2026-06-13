@@ -237,6 +237,13 @@ body {
   text-overflow: ellipsis;
 }
 
+.wine-cuvee-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
 .wine-cuvee {
   font-family: var(--font-serif);
   font-style: italic;
@@ -245,6 +252,36 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Wine-type dot — colour cues the type at a glance */
+.type-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(28, 26, 23, 0.18);
+}
+
+.type-dot[data-type="white"] {
+  background: #e6d893;
+}
+
+.type-dot[data-type="orange"] {
+  background: #c8783a;
+}
+
+.type-dot[data-type="rose"] {
+  background: #e0a0a4;
+}
+
+.type-dot[data-type="red"] {
+  background: #7c2533;
+}
+
+/* Sparkling — pale gold with a little effervescent highlight */
+.type-dot[data-type="sparkling"] {
+  background: radial-gradient(circle at 33% 30%, #ffffff 0 1.5px, #e7cf78 2.5px 100%);
 }
 
 .wine-vintage {

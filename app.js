@@ -89,12 +89,6 @@
       bottlesMinus: container.querySelector(".bottles-minus"),
       bottlesPlus: container.querySelector(".bottles-plus"),
       userNotes: container.querySelector(".f-user-notes"),
-      photoPreview: container.querySelector(".f-photo-preview"),
-      photoEmpty: container.querySelector(".photo-empty"),
-      photoTools: container.querySelector(".photo-tools"),
-      photoInputs: [...container.querySelectorAll(".f-photo-input, .f-photo-input-replace")],
-      photoRemove: container.querySelector(".photo-remove"),
-      photoData: null,
       researchTrigger: container.querySelector(".research-trigger"),
       researchMount: container.querySelector(".research-mount"),
     };
@@ -107,8 +101,10 @@
   }
 
   // -------------------------------------------------------------------
-  // Label photo: captured/attached, downscaled, stored as a JPEG data URL
-  // (keeps localStorage small — full-res phone photos would blow the quota).
+  // Label photo — TEMPORARILY REMOVED from the UI (the label field was taken
+  // out for now). These helpers and the wine.label_photo data field are kept
+  // intact so the field can be re-added later without rebuilding it. Nothing
+  // calls wirePhotoField/setPhoto while the field is hidden.
   // -------------------------------------------------------------------
 
   const PHOTO_MAX_DIM = 1200;
@@ -219,7 +215,6 @@
     refs.expertContext.value = wine.expert_context || "";
     refs.bottlesInput.value = clampBottles(wine.bottles ?? 1);
     refs.userNotes.value = wine.user_notes || "";
-    setPhoto(refs, wine.label_photo);
     renderProvenance(refs, wine);
     autoGrowAll(refs);
   }
@@ -283,7 +278,8 @@
       vintage: vintage || null,
       status,
       bottles: clampBottles(refs.bottlesInput.value),
-      label_photo: refs.photoData ?? null,
+      // Label field is hidden for now; preserve any previously stored photo.
+      label_photo: base.label_photo ?? null,
       tech_facts: {
         ...base.tech_facts,
         producer,
@@ -348,6 +344,30 @@
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
   }
 
+  /**
+   * Classify a wine into a colour/type for the home-list dot, from the free-text
+   * colour field. Sparkling is checked first (a wine can be e.g. "blanc" AND
+   * sparkling). Returns null when it can't be determined (no dot shown).
+   */
+  function wineType(wine) {
+    const c = ((wine.tech_facts && wine.tech_facts.colour) || "").toLowerCase();
+    if (!c) return null;
+    if (/(spark|p[eé]t|pet-?nat|mousse|cr[eé]mant|champagne|frizz|bubb|sekt|cava|prosecc|espumos|lambrusc)/.test(c)) return "sparkling";
+    if (/(orange|amber|skin)/.test(c)) return "orange";
+    if (/(ros[eé]|rosad|rosat|pink)/.test(c)) return "rose";
+    if (/(blanc|white|bianco|blanco|wei)/.test(c)) return "white";
+    if (/(rouge|red|rosso|tinto|noir|negr)/.test(c)) return "red";
+    return null;
+  }
+
+  function makeTypeDot(type) {
+    const dot = document.createElement("span");
+    dot.className = "type-dot";
+    dot.dataset.type = type;
+    dot.title = type;
+    return dot;
+  }
+
   function renderWineEntry(wine) {
     const li = document.createElement("li");
     li.className = "wine-entry";
@@ -367,10 +387,15 @@
     producer.textContent = wine.producer;
     main.appendChild(producer);
 
+    const cuveeLine = document.createElement("div");
+    cuveeLine.className = "wine-cuvee-line";
+    const type = wineType(wine);
+    if (type) cuveeLine.appendChild(makeTypeDot(type));
     const cuvee = document.createElement("span");
     cuvee.className = "wine-cuvee";
     cuvee.textContent = wine.cuvee;
-    main.appendChild(cuvee);
+    cuveeLine.appendChild(cuvee);
+    main.appendChild(cuveeLine);
 
     if (wine.status === STATUS.ENVIE) {
       const tag = document.createElement("span");
@@ -460,7 +485,6 @@
         setActiveStatus(addRefs, addSelectedStatus);
       });
     }
-    wirePhotoField(addRefs);
     wireBottles(addRefs);
     wireAutoGrow(addRefs);
     addResearch = createResearchController({
@@ -538,7 +562,6 @@
 
     currentWine = wine;
     detailRefs = instantiateFields(detailFieldsContainer);
-    wirePhotoField(detailRefs);
     wireBottles(detailRefs);
     wireAutoGrow(detailRefs);
     writeWineToFields(detailRefs, currentWine);

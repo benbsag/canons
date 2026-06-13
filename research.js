@@ -16,9 +16,14 @@
 (function () {
   const { CONFIDENCE } = window.WineCave;
 
-  // The fields research can fill, in display order. `key` is stable and used
-  // for confidence_flags; `label` is shown in the preview UI.
+  // The fields research can fill or correct, in display order. `key` is stable
+  // and used for confidence_flags; `label` is shown in the preview UI. The
+  // identity fields (producer/cuvée/vintage) are included so research can fix
+  // spelling and accent errors in what the user typed.
   const RESEARCH_FIELDS = [
+    { key: "producer", label: "producer" },
+    { key: "cuvee", label: "cuvée" },
+    { key: "vintage", label: "vintage" },
     { key: "region", label: "region" },
     { key: "country", label: "country" },
     { key: "colour", label: "colour" },
@@ -35,6 +40,12 @@
   // the flat research keys and the wine's nested shape in one place.
   function getWineFieldValue(wine, key) {
     switch (key) {
+      case "producer":
+        return wine.producer || "";
+      case "cuvee":
+        return wine.cuvee || "";
+      case "vintage":
+        return wine.vintage || "";
       case "vinification":
         return wine.vinification || "";
       case "tasting_notes":
@@ -48,6 +59,17 @@
 
   function setWineFieldValue(wine, key, value) {
     switch (key) {
+      case "producer":
+        wine.producer = value;
+        wine.tech_facts = { ...wine.tech_facts, producer: value };
+        break;
+      case "cuvee":
+        wine.cuvee = value;
+        break;
+      case "vintage":
+        wine.vintage = value;
+        wine.tech_facts = { ...wine.tech_facts, year: value };
+        break;
       case "vinification":
         wine.vinification = value;
         break;
@@ -80,6 +102,9 @@
     ].join("\n");
 
     const shape = {
+      producer: { value: "corrected canonical producer name", confidence: "sourced | inferred | not_found" },
+      cuvee: { value: "corrected canonical cuvée name", confidence: "..." },
+      vintage: { value: "corrected vintage, or NV", confidence: "..." },
       region: { value: "", confidence: "sourced | inferred | not_found" },
       country: { value: "", confidence: "sourced | inferred | not_found" },
       colour: { value: "rouge / blanc / rosé / orange", confidence: "..." },
@@ -102,6 +127,9 @@
       "",
       "Rules:",
       "- Use only concrete, verifiable facts. Never invent details.",
+      "- The producer, cuvée and vintage I gave may contain spelling, accent or",
+      "  formatting errors. Return the corrected canonical form of each (proper",
+      "  accents, diacritics and capitalisation). If already correct, echo it back.",
       '- For every field include a "confidence": "sourced" if you found it in a',
       '  reliable source, "inferred" if reasoned from related facts, or',
       '  "not_found" if you have no reliable information.',

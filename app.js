@@ -10,6 +10,7 @@
     seedIfEmpty,
     STATUS,
     STATUS_LABELS,
+    CONFIDENCE,
   } = window.WineCave;
 
   const {
@@ -45,20 +46,12 @@
   const detailMetaEl = document.getElementById("detail-meta");
   const detailSaveStatusEl = document.getElementById("detail-save-status");
 
-  // Research panel (dossier paste-back)
-  const researchToggleBtn = document.getElementById("research-toggle-btn");
-  const researchPanel = document.getElementById("research-panel");
-  const researchInputView = document.getElementById("research-input");
-  const researchReviewView = document.getElementById("research-review");
-  const researchCopyBtn = document.getElementById("research-copy-btn");
-  const researchCopyStatus = document.getElementById("research-copy-status");
-  const researchPaste = document.getElementById("research-paste");
-  const researchError = document.getElementById("research-error");
-  const researchCancelBtn = document.getElementById("research-cancel-btn");
-  const researchReviewBtn = document.getElementById("research-review-btn");
-  const researchPreviewList = document.getElementById("research-preview-list");
-  const researchBackBtn = document.getElementById("research-back-btn");
-  const researchApplyBtn = document.getElementById("research-apply-btn");
+  // Research panel (dossier paste-back) — cloned into both Add and Detail.
+  const researchPanelTemplate = document.getElementById("research-panel-template");
+  const detailResearchMount = document.getElementById("detail-research-mount");
+  const addResearchMount = document.getElementById("add-research-mount");
+  const detailResearchToggle = document.getElementById("research-toggle-btn");
+  const addResearchToggle = document.getElementById("add-research-toggle-btn");
 
   const fieldsTemplate = document.getElementById("wine-fields-template");
   const winemakerRowTemplate = document.getElementById("winemaker-row-template");
@@ -439,9 +432,13 @@
 
   let addRefs = null;
   let addSelectedStatus = STATUS.EN_CAVE;
+  // The wine being built in the Add view. Holds anything research adds
+  // (facts, confidence flags, sources) until you tap save.
+  let addDraft = null;
 
   addWineBtn.addEventListener("click", () => {
     addRefs = instantiateFields(addFieldsContainer);
+    addDraft = createWine();
     addSelectedStatus = STATUS.EN_CAVE;
     setActiveStatus(addRefs, addSelectedStatus);
 
@@ -453,12 +450,14 @@
     }
     addRefs.addWinemakerBtn.addEventListener("click", () => addWinemakerRow(addRefs.winemakersList));
     wirePhotoField(addRefs);
+    addResearch.close();
 
     showView("add");
     addRefs.producer.focus();
   });
 
   addBackBtn.addEventListener("click", () => {
+    addResearch.close();
     showView("home");
   });
 
@@ -475,13 +474,15 @@
       return;
     }
 
-    const base = createWine();
-    const wine = readFieldsIntoWine(addRefs, base, addSelectedStatus);
+    // Build on addDraft so any research already applied (facts, confidence
+    // flags, sources, last_researched) is carried into the saved wine.
+    const wine = readFieldsIntoWine(addRefs, addDraft || createWine(), addSelectedStatus);
     if (addSelectedStatus === STATUS.AUSGETRUNKEN) {
       wine.date_status_changed = new Date().toISOString();
     }
 
     saveWine(wine);
+    addResearch.close();
     showView("home");
     render(filterInput.value);
   });
@@ -526,7 +527,7 @@
 
     renderDetailMeta();
     detailSaveStatusEl.textContent = "";
-    closeResearch();
+    detailResearch.close();
     showView("detail");
   }
 
@@ -573,8 +574,6 @@
   // Research (dossier paste-back)
   // -------------------------------------------------------------------
 
-  let pendingResearch = null;
-
   function fallbackCopy(text) {
     try {
       const ta = document.createElement("textarea");
@@ -600,18 +599,6 @@
         .catch(() => fallbackCopy(text));
     }
     return Promise.resolve(fallbackCopy(text));
-  }
-
-  function closeResearch() {
-    pendingResearch = null;
-    researchPanel.hidden = true;
-    researchInputView.hidden = false;
-    researchReviewView.hidden = true;
-    researchPaste.value = "";
-    researchError.hidden = true;
-    researchError.textContent = "";
-    researchCopyStatus.textContent = "";
-    researchPreviewList.innerHTML = "";
   }
 
   function makePreviewRow({ key, label, confidence, proposed, current, willOverwrite, checked }) {
@@ -665,15 +652,19 @@
     return row;
   }
 
-  function renderResearchPreview(parsed, baseWine) {
-    researchPreviewList.innerHTML = "";
+  function renderResearchPreview(listEl, parsed, baseWine) {
+    listEl.innerHTML = "";
 
     for (const f of RESEARCH_FIELDS) {
       const field = parsed.fields[f.key];
       if (!field || !field.value) continue;
       const current = window.WineCave.research.getWineFieldValue(baseWine, f.key);
       const willOverwrite = Boolean(current) && current !== field.value;
-      researchPreviewList.appendChild(
+      // Preselect when the field is empty, or when research is confident
+      // ("sourced") — so corrections to what you typed (accents, spelling)
+      // apply by default while staying easy to untick.
+      const checked = !current || field.confidence === CONFIDENCE.SOURCED;
+      listEl.appendChild(
         makePreviewRow({
           key: f.key,
           label: f.label,
@@ -681,13 +672,13 @@
           proposed: field.value,
           current,
           willOverwrite,
-          checked: !current, // preselect only when the field is empty
+          checked,
         })
       );
     }
 
     if (parsed.winemakers.length) {
-      researchPreviewList.appendChild(
+      listEl.appendChild(
         makePreviewRow({
           key: "winemakers",
           label: "winemakers",
@@ -705,81 +696,152 @@
       note.className = "research-sources-note";
       const n = parsed.sources.length;
       note.textContent = `${n} source${n > 1 ? "s" : ""} will be added.`;
-      researchPreviewList.appendChild(note);
+      listEl.appendChild(note);
     }
 
-    if (!researchPreviewList.children.length) {
+    if (!listEl.children.length) {
       const p = document.createElement("p");
       p.className = "research-empty";
       p.textContent = "The reply didn't contain any new facts to add.";
-      researchPreviewList.appendChild(p);
+      listEl.appendChild(p);
     }
   }
 
-  researchToggleBtn.addEventListener("click", () => {
-    if (researchPanel.hidden) {
-      closeResearch();
-      researchPanel.hidden = false;
-    } else {
-      closeResearch();
+  /**
+   * Wire one research panel (cloned from the template) to a context. The
+   * callbacks decouple the panel from where it lives:
+   *   isReady()      → is there a form to act on?
+   *   buildBase()    → a wine object from the current form state (+ identity)
+   *   onApplied(win) → persist/render the researched wine
+   * Used for both the Detail view (saves immediately) and the Add view
+   * (fills the form; the wine is saved later when you tap save).
+   */
+  function createResearchController({ toggleBtn, mount, isReady, buildBase, onApplied }) {
+    const panel = researchPanelTemplate.content.firstElementChild.cloneNode(true);
+    mount.appendChild(panel);
+
+    const inputView = panel.querySelector(".research-input");
+    const reviewView = panel.querySelector(".research-review");
+    const copyBtn = panel.querySelector(".research-copy-btn");
+    const copyStatus = panel.querySelector(".research-copy-status");
+    const paste = panel.querySelector(".research-paste");
+    const errorEl = panel.querySelector(".research-error");
+    const cancelBtn = panel.querySelector(".research-cancel-btn");
+    const reviewBtn = panel.querySelector(".research-review-btn");
+    const previewList = panel.querySelector(".research-preview-list");
+    const backBtn = panel.querySelector(".research-back-btn");
+    const applyBtn = panel.querySelector(".research-apply-btn");
+
+    let pending = null;
+
+    function close() {
+      pending = null;
+      panel.hidden = true;
+      inputView.hidden = false;
+      reviewView.hidden = true;
+      paste.value = "";
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      copyStatus.textContent = "";
+      previewList.innerHTML = "";
     }
-  });
 
-  researchCancelBtn.addEventListener("click", closeResearch);
-
-  researchCopyBtn.addEventListener("click", () => {
-    if (!currentWine) return;
-    copyText(buildResearchPrompt(currentWine)).then((ok) => {
-      researchCopyStatus.textContent = ok ? "copied" : "couldn't copy — select the text manually";
-      setTimeout(() => {
-        researchCopyStatus.textContent = "";
-      }, 2500);
+    toggleBtn.addEventListener("click", () => {
+      if (!isReady()) return;
+      if (panel.hidden) {
+        close();
+        panel.hidden = false;
+      } else {
+        close();
+      }
     });
+
+    cancelBtn.addEventListener("click", close);
+
+    copyBtn.addEventListener("click", () => {
+      if (!isReady()) return;
+      const base = buildBase();
+      if (!base.producer) {
+        copyStatus.textContent = "enter a producer first";
+        setTimeout(() => {
+          copyStatus.textContent = "";
+        }, 2500);
+        return;
+      }
+      copyText(buildResearchPrompt(base)).then((ok) => {
+        copyStatus.textContent = ok ? "copied" : "couldn't copy — select the text manually";
+        setTimeout(() => {
+          copyStatus.textContent = "";
+        }, 2500);
+      });
+    });
+
+    reviewBtn.addEventListener("click", () => {
+      if (!isReady()) return;
+      errorEl.hidden = true;
+      let parsed;
+      try {
+        parsed = parseResearchResponse(paste.value);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.hidden = false;
+        return;
+      }
+      pending = parsed;
+      // Preview against current form state so unsaved edits count as "current".
+      renderResearchPreview(previewList, parsed, buildBase());
+      inputView.hidden = true;
+      reviewView.hidden = false;
+    });
+
+    backBtn.addEventListener("click", () => {
+      reviewView.hidden = true;
+      inputView.hidden = false;
+    });
+
+    applyBtn.addEventListener("click", () => {
+      if (!pending || !isReady()) return;
+      const acceptedKeys = [...previewList.querySelectorAll(".preview-check")]
+        .filter((c) => c.checked)
+        .map((c) => c.dataset.key);
+      const updated = applyResearchToWine(buildBase(), pending, acceptedKeys);
+      onApplied(updated);
+      close();
+    });
+
+    return { close };
+  }
+
+  const detailResearch = createResearchController({
+    toggleBtn: detailResearchToggle,
+    mount: detailResearchMount,
+    isReady: () => Boolean(currentWine && detailRefs),
+    buildBase: () => readFieldsIntoWine(detailRefs, currentWine, currentWine.status),
+    onApplied: (updated) => {
+      currentWine = updated;
+      saveWine(currentWine);
+      writeWineToFields(detailRefs, currentWine);
+      renderDetailMeta();
+      detailSaveStatusEl.textContent = "researched";
+      setTimeout(() => {
+        detailSaveStatusEl.textContent = "";
+      }, 1800);
+    },
   });
 
-  researchReviewBtn.addEventListener("click", () => {
-    if (!currentWine || !detailRefs) return;
-    researchError.hidden = true;
-    let parsed;
-    try {
-      parsed = parseResearchResponse(researchPaste.value);
-    } catch (err) {
-      researchError.textContent = err.message;
-      researchError.hidden = false;
-      return;
-    }
-    pendingResearch = parsed;
-    // Preview against the current form state so unsaved edits count as "current".
-    const baseWine = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
-    renderResearchPreview(parsed, baseWine);
-    researchInputView.hidden = true;
-    researchReviewView.hidden = false;
-  });
-
-  researchBackBtn.addEventListener("click", () => {
-    researchReviewView.hidden = true;
-    researchInputView.hidden = false;
-  });
-
-  researchApplyBtn.addEventListener("click", () => {
-    if (!pendingResearch || !currentWine || !detailRefs) return;
-    const acceptedKeys = [...researchPreviewList.querySelectorAll(".preview-check")]
-      .filter((c) => c.checked)
-      .map((c) => c.dataset.key);
-
-    // Fold in any unsaved form edits, then layer the accepted research on top.
-    const base = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
-    currentWine = applyResearchToWine(base, pendingResearch, acceptedKeys);
-    saveWine(currentWine);
-
-    writeWineToFields(detailRefs, currentWine);
-    renderDetailMeta();
-    closeResearch();
-
-    detailSaveStatusEl.textContent = "researched";
-    setTimeout(() => {
-      detailSaveStatusEl.textContent = "";
-    }, 1800);
+  const addResearch = createResearchController({
+    toggleBtn: addResearchToggle,
+    mount: addResearchMount,
+    isReady: () => Boolean(addRefs),
+    buildBase: () => readFieldsIntoWine(addRefs, addDraft, addSelectedStatus),
+    onApplied: (updated) => {
+      // Don't save yet — fold the research into the draft and fill the form so
+      // you can review/adjust, then tap save to add the wine.
+      addDraft = updated;
+      addSelectedStatus = updated.status;
+      writeWineToFields(addRefs, updated);
+      setActiveStatus(addRefs, addSelectedStatus);
+    },
   });
 
   // -------------------------------------------------------------------

@@ -55,8 +55,15 @@
       <section id="view-add" class="view" hidden>
         <header class="view-header">
           <button class="action-link" type="button" id="add-back-btn">‹ back</button>
-          <p class="brand">New wine</p>
+          <div class="header-actions">
+            <button class="action-link" type="button" id="add-research-toggle-btn">
+              <span class="glyph">⌕</span> research
+            </button>
+            <p class="brand">New wine</p>
+          </div>
         </header>
+
+        <div class="research-mount" id="add-research-mount"></div>
 
         <form id="add-form" novalidate>
           <div class="wine-fields" id="add-fields"></div>
@@ -80,43 +87,9 @@
 
         <p class="meta-line" id="detail-meta"></p>
 
-        <!-- ============ RESEARCH (dossier paste-back) ============ -->
-        <section class="research-panel" id="research-panel" hidden>
-          <div class="research-input" id="research-input">
-            <p class="research-help">
-              Tap <strong>copy request</strong>, paste it into Claude or ChatGPT,
-              then paste the reply back below and tap <strong>review</strong>.
-            </p>
-            <div class="research-actions research-actions--start">
-              <button type="button" class="action-link" id="research-copy-btn">
-                <span class="glyph">⧉</span> copy request
-              </button>
-              <span class="research-status" id="research-copy-status"></span>
-            </div>
-            <textarea
-              id="research-paste"
-              class="research-paste"
-              rows="4"
-              placeholder="paste the assistant's reply here…"
-              autocomplete="off"
-              spellcheck="false"
-            ></textarea>
-            <p class="research-error" id="research-error" hidden></p>
-            <div class="research-actions">
-              <button type="button" class="action-link action-link--quiet" id="research-cancel-btn">cancel</button>
-              <button type="button" class="save-btn" id="research-review-btn">review</button>
-            </div>
-          </div>
-
-          <div class="research-review" id="research-review" hidden>
-            <p class="research-label">review &amp; apply — unchecked items are left as they are</p>
-            <div class="research-preview-list" id="research-preview-list"></div>
-            <div class="research-actions">
-              <button type="button" class="action-link action-link--quiet" id="research-back-btn">back</button>
-              <button type="button" class="save-btn" id="research-apply-btn">apply selected</button>
-            </div>
-          </div>
-        </section>
+        <!-- Research panel (dossier paste-back) is cloned in here from the
+             #research-panel-template below. -->
+        <div class="research-mount" id="detail-research-mount"></div>
 
         <form id="detail-form" novalidate>
           <div class="wine-fields" id="detail-fields"></div>
@@ -131,18 +104,18 @@
     <!-- Shared field markup for Add Wine and Wine detail (cloned via JS) -->
     <template id="wine-fields-template">
       <div class="field field-producer">
-        <label>producer</label>
+        <label data-cf="producer">producer</label>
         <input type="text" class="f-producer" autocomplete="off" />
       </div>
 
       <div class="field field-cuvee">
-        <label>cuvée</label>
+        <label data-cf="cuvee">cuvée</label>
         <input type="text" class="f-cuvee" autocomplete="off" />
       </div>
 
       <div class="field-row">
         <div class="field field-vintage">
-          <label>vintage</label>
+          <label data-cf="vintage">vintage</label>
           <input type="text" class="f-vintage" placeholder="e.g. 2021 or NV" autocomplete="off" />
         </div>
 
@@ -241,6 +214,45 @@
         </p>
         <ul class="sources-list"></ul>
       </div>
+    </template>
+
+    <!-- Research panel (cloned into the Add and Detail views via JS) -->
+    <template id="research-panel-template">
+      <section class="research-panel" hidden>
+        <div class="research-input">
+          <p class="research-help">
+            Tap <strong>copy request</strong>, paste it into Claude or ChatGPT,
+            then paste the reply back below and tap <strong>review</strong>.
+          </p>
+          <div class="research-actions research-actions--start">
+            <button type="button" class="action-link research-copy-btn">
+              <span class="glyph">⧉</span> copy request
+            </button>
+            <span class="research-status research-copy-status"></span>
+          </div>
+          <textarea
+            class="research-paste"
+            rows="4"
+            placeholder="paste the assistant's reply here…"
+            autocomplete="off"
+            spellcheck="false"
+          ></textarea>
+          <p class="research-error" hidden></p>
+          <div class="research-actions">
+            <button type="button" class="action-link action-link--quiet research-cancel-btn">cancel</button>
+            <button type="button" class="save-btn research-review-btn">review</button>
+          </div>
+        </div>
+
+        <div class="research-review" hidden>
+          <p class="research-label">review &amp; apply — unchecked items are left as they are</p>
+          <div class="research-preview-list"></div>
+          <div class="research-actions">
+            <button type="button" class="action-link action-link--quiet research-back-btn">back</button>
+            <button type="button" class="save-btn research-apply-btn">apply selected</button>
+          </div>
+        </div>
+      </section>
     </template>
 
     <!-- Shared markup for one winemaker row (cloned via JS) -->

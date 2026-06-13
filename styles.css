@@ -1,0 +1,591 @@
+/* ---------------------------------------------------------------------------
+   Wine Cave — design system
+   Reference: a natural-wine restaurant list in Paris — matte paper, ink,
+   typewriter + warm serif type, calm and unfussy.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Palette (§8) — intentionally hardcoded, does not invert with dark mode */
+  --paper: #f3ede1;
+  --ink: #1c1a17;
+  --muted: #857b6d;
+  --hairline: #d9cfbd;
+  --accent: #8e3b2f; /* rubber-stamp oxblood, used sparingly */
+
+  /* Type */
+  --font-mono: "Courier Prime", "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: "Spectral", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+
+  /* Rhythm */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 64px;
+
+  --max-width: 640px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Force the light palette even if the system is in dark mode (§8) */
+:root {
+  color-scheme: light only;
+}
+
+.app {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-3) var(--space-6);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Header / filter / actions                                               */
+/* ---------------------------------------------------------------------- */
+
+.app-header {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.brand {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 var(--space-4);
+}
+
+.filter-line {
+  position: relative;
+  margin-bottom: var(--space-3);
+}
+
+.filter-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: var(--space-2) var(--space-1);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.filter-input::placeholder {
+  color: var(--muted);
+}
+
+.filter-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.action-link {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--ink);
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease;
+}
+
+.action-link:hover {
+  color: var(--accent);
+}
+
+.action-link .glyph {
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Collection list                                                         */
+/* ---------------------------------------------------------------------- */
+
+.region-group {
+  margin-top: var(--space-4);
+}
+
+.region-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 0;
+}
+
+.wine-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wine-entry {
+  position: relative;
+  display: block;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+  text-decoration: none;
+  color: var(--ink);
+  overflow: hidden;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.wine-entry:hover {
+  background-color: rgba(28, 26, 23, 0.03);
+}
+
+.wine-entry:last-child {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.wine-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.wine-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wine-producer {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wine-cuvee {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wine-vintage {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.wine-envie-tag {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* The stamp — signature interaction for Ausgetrunken                     */
+/* ---------------------------------------------------------------------- */
+
+.wine-entry--finished {
+  opacity: 0.85;
+}
+
+/* Let the stamp be the focal point — recede the type beneath it. */
+.wine-entry--finished .wine-producer,
+.wine-entry--finished .wine-cuvee {
+  color: var(--muted);
+}
+
+.stamp {
+  position: absolute;
+  top: 50%;
+  right: 4%;
+  transform: translateY(-50%) rotate(-8deg);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 5px 12px;
+  border-radius: 3px;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Empty state                                                             */
+/* ---------------------------------------------------------------------- */
+
+.empty-state {
+  margin-top: var(--space-5);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Small screens                                                           */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 380px) {
+  .wine-cuvee {
+    font-size: 16px;
+  }
+
+  .stamp {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    right: 2%;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Views                                                                   */
+/* ---------------------------------------------------------------------- */
+
+.view[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Add Wine form                                                           */
+/* ---------------------------------------------------------------------- */
+
+.view-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.view-header .brand {
+  margin: 0;
+}
+
+.action-link--quiet {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.action-link--quiet:hover {
+  color: var(--accent);
+}
+
+.meta-line {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-4);
+  min-height: 1em;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+}
+
+.field label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  color: var(--muted);
+}
+
+.field-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.field-row .field {
+  flex: 1;
+  min-width: 0;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="search"]:not(.filter-input),
+textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  padding: var(--space-1) 0 6px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+  border-bottom-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+textarea.narrative {
+  font-family: var(--font-serif);
+  font-size: 16px;
+}
+
+.field-producer input {
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.field-cuvee input {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 17px;
+}
+
+.field-vintage input {
+  color: var(--muted);
+}
+
+/* Status picker */
+
+.status-options {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.status-option {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.status-option:hover {
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.status-option.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(142, 59, 47, 0.06);
+}
+
+/* Label photo */
+
+.field-photo {
+  gap: var(--space-2);
+}
+
+.photo-frame {
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  background: rgba(28, 26, 23, 0.02);
+  overflow: hidden;
+}
+
+.f-photo-preview {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: var(--paper);
+}
+
+.photo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.photo-empty:hover {
+  color: var(--accent);
+}
+
+.photo-empty .glyph {
+  color: var(--muted);
+}
+
+.photo-tools {
+  display: flex;
+  gap: var(--space-4);
+  padding-top: 2px;
+}
+
+.photo-tools .photo-replace {
+  cursor: pointer;
+}
+
+/* Winemakers */
+
+.winemaker-row {
+  position: relative;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.winemaker-row .field {
+  margin-bottom: var(--space-2);
+}
+
+.winemaker-row .field-row:last-child .field {
+  margin-bottom: 0;
+}
+
+.remove-winemaker {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.remove-winemaker:hover {
+  color: var(--accent);
+}
+
+/* Save button */
+
+.form-actions {
+  margin-top: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+}
+
+.save-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: lowercase;
+  color: var(--muted);
+}
+
+.save-btn {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 3px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.save-btn:hover {
+  background: var(--accent);
+  color: var(--paper);
+}

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3ede1" />
+    <meta name="color-scheme" content="light" />
+    <title>Wine Cave</title>
+
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Wine Cave" />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- ================= HOME ================= -->
+      <section id="view-home" class="view">
+        <header class="app-header">
+          <p class="brand">Wine Cave</p>
+
+          <div class="filter-line">
+            <input
+              id="filter-input"
+              class="filter-input"
+              type="search"
+              placeholder="jura, chenin, 2020 …"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <div class="actions">
+            <button class="action-link" type="button" id="add-wine-btn">
+              <span class="glyph">+</span> add
+            </button>
+            <button class="action-link" type="button" id="search-wine-btn">
+              <span class="glyph">⌕</span> hunt
+            </button>
+          </div>
+        </header>
+
+        <main id="wine-list"></main>
+      </section>
+
+      <!-- ================= ADD WINE ================= -->
+      <section id="view-add" class="view" hidden>
+        <header class="view-header">
+          <button class="action-link" type="button" id="add-back-btn">‹ back</button>
+          <p class="brand">New wine</p>
+        </header>
+
+        <form id="add-form" novalidate>
+          <div class="wine-fields" id="add-fields"></div>
+          <div class="form-actions">
+            <button type="submit" class="save-btn">save</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ================= WINE DETAIL ================= -->
+      <section id="view-detail" class="view" hidden>
+        <header class="view-header">
+          <button class="action-link" type="button" id="detail-back-btn">‹ back</button>
+          <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
+        </header>
+
+        <p class="meta-line" id="detail-meta"></p>
+
+        <form id="detail-form" novalidate>
+          <div class="wine-fields" id="detail-fields"></div>
+          <div class="form-actions">
+            <span class="save-status" id="detail-save-status"></span>
+            <button type="submit" class="save-btn">save</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- Shared field markup for Add Wine and Wine detail (cloned via JS) -->
+    <template id="wine-fields-template">
+      <div class="field field-producer">
+        <label>producer</label>
+        <input type="text" class="f-producer" autocomplete="off" />
+      </div>
+
+      <div class="field field-cuvee">
+        <label>cuvée</label>
+        <input type="text" class="f-cuvee" autocomplete="off" />
+      </div>
+
+      <div class="field-row">
+        <div class="field field-vintage">
+          <label>vintage</label>
+          <input type="text" class="f-vintage" placeholder="e.g. 2021 or NV" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label>status</label>
+          <div class="status-options">
+            <button type="button" class="status-option" data-status="en_cave">en cave</button>
+            <button type="button" class="status-option" data-status="envie">envie</button>
+            <button type="button" class="status-option" data-status="ausgetrunken">finished</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-label">label</p>
+      <div class="field field-photo">
+        <div class="photo-frame">
+          <img class="f-photo-preview" alt="Wine label" hidden />
+          <label class="photo-empty">
+            <span class="glyph">+</span> add label photo
+            <input type="file" class="f-photo-input" accept="image/*" hidden />
+          </label>
+        </div>
+        <div class="photo-tools" hidden>
+          <label class="action-link photo-replace">
+            <span class="glyph">↻</span> replace
+            <input type="file" class="f-photo-input-replace" accept="image/*" hidden />
+          </label>
+          <button type="button" class="action-link action-link--quiet photo-remove">remove</button>
+        </div>
+      </div>
+
+      <p class="section-label">tech facts</p>
+
+      <div class="field-row">
+        <div class="field">
+          <label>region</label>
+          <input type="text" class="f-region" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>country</label>
+          <input type="text" class="f-country" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>colour</label>
+          <input type="text" class="f-colour" placeholder="rouge / blanc / rosé / orange" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>terroir type</label>
+          <input type="text" class="f-terroir" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>grape varietals</label>
+        <input type="text" class="f-grapes" placeholder="composition may vary by vintage" autocomplete="off" />
+      </div>
+
+      <p class="section-label">vinification</p>
+      <div class="field">
+        <textarea
+          class="f-vinification narrative"
+          rows="3"
+          placeholder="concrete facts only — maceration, élevage, vessel, ageing time…"
+        ></textarea>
+      </div>
+
+      <p class="section-label">tasting notes</p>
+      <div class="field">
+        <textarea class="f-tasting-notes narrative" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label>drinking window</label>
+        <input type="text" class="f-drinking-window" placeholder="e.g. now–2030" autocomplete="off" />
+      </div>
+
+      <p class="section-label">winemakers</p>
+      <div class="winemakers-list"></div>
+      <button type="button" class="action-link add-winemaker-btn">
+        <span class="glyph">+</span> winemaker
+      </button>
+
+      <p class="section-label">notes</p>
+      <div class="field">
+        <textarea class="f-user-notes narrative" rows="3" placeholder="your own notes"></textarea>
+      </div>
+    </template>
+
+    <!-- Shared markup for one winemaker row (cloned via JS) -->
+    <template id="winemaker-row-template">
+      <div class="winemaker-row">
+        <button type="button" class="remove-winemaker" aria-label="Remove winemaker">×</button>
+        <div class="field-row">
+          <div class="field">
+            <label>name</label>
+            <input type="text" class="wm-name" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>instagram</label>
+            <input type="text" class="wm-instagram" placeholder="@handle" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>email</label>
+            <input type="email" class="wm-email" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>phone</label>
+            <input type="text" class="wm-phone" autocomplete="off" />
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script src="./storage.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

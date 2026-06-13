@@ -39,11 +39,8 @@
           </div>
 
           <div class="actions">
-            <button class="action-link" type="button" id="add-wine-btn">
-              <span class="glyph">+</span> add
-            </button>
-            <button class="action-link" type="button" id="search-wine-btn">
-              <span class="glyph">⌕</span> hunt
+            <button class="add-btn-large" type="button" id="add-wine-btn">
+              <span class="glyph">+</span> add a wine
             </button>
           </div>
         </header>
@@ -55,15 +52,8 @@
       <section id="view-add" class="view" hidden>
         <header class="view-header">
           <button class="action-link" type="button" id="add-back-btn">‹ back</button>
-          <div class="header-actions">
-            <button class="action-link" type="button" id="add-research-toggle-btn">
-              <span class="glyph">⌕</span> research
-            </button>
-            <p class="brand">New wine</p>
-          </div>
+          <p class="brand">New wine</p>
         </header>
-
-        <div class="research-mount" id="add-research-mount"></div>
 
         <form id="add-form" novalidate>
           <div class="wine-fields" id="add-fields"></div>
@@ -77,19 +67,10 @@
       <section id="view-detail" class="view" hidden>
         <header class="view-header">
           <button class="action-link" type="button" id="detail-back-btn">‹ back</button>
-          <div class="header-actions">
-            <button class="action-link" type="button" id="research-toggle-btn">
-              <span class="glyph">⌕</span> research
-            </button>
-            <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
-          </div>
+          <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
         </header>
 
         <p class="meta-line" id="detail-meta"></p>
-
-        <!-- Research panel (dossier paste-back) is cloned in here from the
-             #research-panel-template below. -->
-        <div class="research-mount" id="detail-research-mount"></div>
 
         <form id="detail-form" novalidate>
           <div class="wine-fields" id="detail-fields"></div>
@@ -105,12 +86,12 @@
     <template id="wine-fields-template">
       <div class="field field-producer">
         <label data-cf="producer">producer</label>
-        <input type="text" class="f-producer" autocomplete="off" />
+        <textarea class="f-producer autogrow" rows="1" autocomplete="off" spellcheck="false"></textarea>
       </div>
 
       <div class="field field-cuvee">
         <label data-cf="cuvee">cuvée</label>
-        <input type="text" class="f-cuvee" autocomplete="off" />
+        <textarea class="f-cuvee autogrow" rows="1" autocomplete="off" spellcheck="false"></textarea>
       </div>
 
       <div class="field-row">
@@ -119,14 +100,30 @@
           <input type="text" class="f-vintage" placeholder="e.g. 2021 or NV" autocomplete="off" />
         </div>
 
-        <div class="field">
-          <label>status</label>
-          <div class="status-options">
-            <button type="button" class="status-option" data-status="en_cave">en cave</button>
-            <button type="button" class="status-option" data-status="envie">envie</button>
-            <button type="button" class="status-option" data-status="ausgetrunken">finished</button>
+        <div class="field field-bottles">
+          <label>bottles</label>
+          <div class="stepper">
+            <button type="button" class="stepper-btn bottles-minus" aria-label="One fewer">−</button>
+            <input type="number" class="f-bottles" inputmode="numeric" min="0" step="1" value="1" />
+            <button type="button" class="stepper-btn bottles-plus" aria-label="One more">+</button>
           </div>
         </div>
+      </div>
+
+      <div class="field">
+        <label>status</label>
+        <div class="status-options">
+          <button type="button" class="status-option" data-status="en_cave">en cave</button>
+          <button type="button" class="status-option" data-status="envie">envie</button>
+          <button type="button" class="status-option" data-status="ausgetrunken">finished</button>
+        </div>
+      </div>
+
+      <div class="research-launch">
+        <button type="button" class="research-trigger">
+          <span class="glyph">⌕</span> research this wine
+        </button>
+        <div class="research-mount"></div>
       </div>
 
       <p class="section-label">label</p>
@@ -152,34 +149,34 @@
       <div class="field-row">
         <div class="field">
           <label data-cf="region">region</label>
-          <input type="text" class="f-region" autocomplete="off" />
+          <textarea class="f-region autogrow" rows="1" autocomplete="off" spellcheck="false"></textarea>
         </div>
         <div class="field">
           <label data-cf="country">country</label>
-          <input type="text" class="f-country" autocomplete="off" />
+          <textarea class="f-country autogrow" rows="1" autocomplete="off" spellcheck="false"></textarea>
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
           <label data-cf="colour">colour</label>
-          <input type="text" class="f-colour" placeholder="rouge / blanc / rosé / orange" autocomplete="off" />
+          <textarea class="f-colour autogrow" rows="1" placeholder="rouge / blanc / rosé / orange" autocomplete="off" spellcheck="false"></textarea>
         </div>
         <div class="field">
           <label data-cf="terroir_type">terroir type</label>
-          <input type="text" class="f-terroir" autocomplete="off" />
+          <textarea class="f-terroir autogrow" rows="1" autocomplete="off" spellcheck="false"></textarea>
         </div>
       </div>
 
       <div class="field">
         <label data-cf="grape_varietals">grape varietals</label>
-        <input type="text" class="f-grapes" placeholder="composition may vary by vintage" autocomplete="off" />
+        <textarea class="f-grapes autogrow" rows="1" placeholder="composition may vary by vintage" autocomplete="off" spellcheck="false"></textarea>
       </div>
 
       <p class="section-label" data-cf="vinification">vinification</p>
       <div class="field">
         <textarea
-          class="f-vinification narrative"
+          class="f-vinification narrative autogrow"
           rows="3"
           placeholder="concrete facts only — maceration, élevage, vessel, ageing time…"
         ></textarea>
@@ -187,22 +184,25 @@
 
       <p class="section-label" data-cf="tasting_notes">tasting notes</p>
       <div class="field">
-        <textarea class="f-tasting-notes narrative" rows="3"></textarea>
+        <textarea class="f-tasting-notes narrative autogrow" rows="3"></textarea>
       </div>
       <div class="field">
         <label data-cf="drinking_window">drinking window</label>
-        <input type="text" class="f-drinking-window" placeholder="e.g. now–2030" autocomplete="off" />
+        <textarea class="f-drinking-window autogrow" rows="1" placeholder="e.g. now–2030" autocomplete="off" spellcheck="false"></textarea>
       </div>
 
-      <p class="section-label">winemakers</p>
-      <div class="winemakers-list"></div>
-      <button type="button" class="action-link add-winemaker-btn">
-        <span class="glyph">+</span> winemaker
-      </button>
+      <p class="section-label" data-cf="expert_context">context</p>
+      <div class="field">
+        <textarea
+          class="f-expert-context narrative autogrow"
+          rows="3"
+          placeholder="the lowdown — where it sits in the lineup, scarcity, price, who pours it… (research can fill this)"
+        ></textarea>
+      </div>
 
       <p class="section-label">notes</p>
       <div class="field">
-        <textarea class="f-user-notes narrative" rows="3" placeholder="your own notes"></textarea>
+        <textarea class="f-user-notes narrative autogrow" rows="3" placeholder="your own notes"></textarea>
       </div>
 
       <div class="provenance-block" hidden>
@@ -253,33 +253,6 @@
           </div>
         </div>
       </section>
-    </template>
-
-    <!-- Shared markup for one winemaker row (cloned via JS) -->
-    <template id="winemaker-row-template">
-      <div class="winemaker-row">
-        <button type="button" class="remove-winemaker" aria-label="Remove winemaker">×</button>
-        <div class="field-row">
-          <div class="field">
-            <label>name</label>
-            <input type="text" class="wm-name" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label>instagram</label>
-            <input type="text" class="wm-instagram" placeholder="@handle" autocomplete="off" />
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>email</label>
-            <input type="email" class="wm-email" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label>phone</label>
-            <input type="text" class="wm-phone" autocomplete="off" />
-          </div>
-        </div>
-      </div>
     </template>
 
     <script src="./storage.js"></script>

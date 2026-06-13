@@ -86,10 +86,12 @@
       cuvee: partial.cuvee ?? "",
       vintage: partial.vintage ?? null,
       status: partial.status || STATUS.EN_CAVE,
+      bottles: partial.bottles ?? 1,
       date_added: partial.date_added || now,
       date_status_changed: partial.date_status_changed ?? null,
       label_photo: partial.label_photo ?? null,
       user_notes: partial.user_notes ?? "",
+      expert_context: partial.expert_context ?? "",
       tech_facts: {
         grape_varietals: "",
         producer: partial.producer ?? "",

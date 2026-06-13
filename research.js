@@ -32,6 +32,7 @@
     { key: "vinification", label: "vinification" },
     { key: "tasting_notes", label: "tasting notes" },
     { key: "drinking_window", label: "drinking window" },
+    { key: "expert_context", label: "context" },
   ];
 
   const FIELD_KEYS = RESEARCH_FIELDS.map((f) => f.key);
@@ -48,6 +49,8 @@
         return wine.vintage || "";
       case "vinification":
         return wine.vinification || "";
+      case "expert_context":
+        return wine.expert_context || "";
       case "tasting_notes":
         return (wine.tasting_notes && wine.tasting_notes.notes) || "";
       case "drinking_window":
@@ -72,6 +75,9 @@
         break;
       case "vinification":
         wine.vinification = value;
+        break;
+      case "expert_context":
+        wine.expert_context = value;
         break;
       case "tasting_notes":
         wine.tasting_notes = { ...wine.tasting_notes, notes: value };
@@ -113,7 +119,10 @@
       vinification: { value: "concrete facts only — maceration, élevage, vessel, ageing", confidence: "..." },
       tasting_notes: { value: "", confidence: "..." },
       drinking_window: { value: "e.g. now–2030", confidence: "..." },
-      winemakers: [{ name: "", instagram: "@handle or null", email: "or null", phone: "or null" }],
+      expert_context: {
+        value: "subjective context a natural-wine insider would value (see rules)",
+        confidence: "...",
+      },
       sources: ["https://real-url-you-used"],
     };
 
@@ -136,6 +145,13 @@
       '- If a fact is not found, still include the field with value "" and',
       '  confidence "not_found".',
       "- Keep vinification and tasting notes factual and concise.",
+      '- "expert_context" is the one subjective field. Write 2–4 sentences of the',
+      "  context a knowledgeable natural-wine person would care about: where this",
+      "  cuvée sits in the producer's lineup, how it compares to peer producers and",
+      "  to recent vintages, overall quality and reputation, production volume,",
+      "  scarcity and rough price, and notable bars/restaurants/shops known to pour",
+      "  or stock it. Ground it in reliable sources, but you may reasonably",
+      "  extrapolate where an expert would — mark it \"inferred\" when you do.",
       '- "sources" must be real URLs you actually consulted.',
       "",
       "Return exactly this JSON shape:",

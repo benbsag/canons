@@ -34,7 +34,6 @@
   const viewDetail = document.getElementById("view-detail");
 
   const addWineBtn = document.getElementById("add-wine-btn");
-  const searchWineBtn = document.getElementById("search-wine-btn");
   const addBackBtn = document.getElementById("add-back-btn");
   const addForm = document.getElementById("add-form");
   const addFieldsContainer = document.getElementById("add-fields");
@@ -46,15 +45,16 @@
   const detailMetaEl = document.getElementById("detail-meta");
   const detailSaveStatusEl = document.getElementById("detail-save-status");
 
-  // Research panel (dossier paste-back) — cloned into both Add and Detail.
+  // Research panel (dossier paste-back) — its trigger + mount live inside the
+  // shared wine-fields template, so each form gets its own under the vintage.
   const researchPanelTemplate = document.getElementById("research-panel-template");
-  const detailResearchMount = document.getElementById("detail-research-mount");
-  const addResearchMount = document.getElementById("add-research-mount");
-  const detailResearchToggle = document.getElementById("research-toggle-btn");
-  const addResearchToggle = document.getElementById("add-research-toggle-btn");
 
   const fieldsTemplate = document.getElementById("wine-fields-template");
-  const winemakerRowTemplate = document.getElementById("winemaker-row-template");
+
+  // Research controllers are created per form open (wired to the in-form
+  // trigger + mount), so they live as mutable references.
+  let detailResearch = null;
+  let addResearch = null;
 
   // Ensure there's something to look at on first run.
   seedIfEmpty();
@@ -84,8 +84,10 @@
       vinification: container.querySelector(".f-vinification"),
       tastingNotes: container.querySelector(".f-tasting-notes"),
       drinkingWindow: container.querySelector(".f-drinking-window"),
-      winemakersList: container.querySelector(".winemakers-list"),
-      addWinemakerBtn: container.querySelector(".add-winemaker-btn"),
+      expertContext: container.querySelector(".f-expert-context"),
+      bottlesInput: container.querySelector(".f-bottles"),
+      bottlesMinus: container.querySelector(".bottles-minus"),
+      bottlesPlus: container.querySelector(".bottles-plus"),
       userNotes: container.querySelector(".f-user-notes"),
       photoPreview: container.querySelector(".f-photo-preview"),
       photoEmpty: container.querySelector(".photo-empty"),
@@ -93,6 +95,8 @@
       photoInputs: [...container.querySelectorAll(".f-photo-input, .f-photo-input-replace")],
       photoRemove: container.querySelector(".photo-remove"),
       photoData: null,
+      researchTrigger: container.querySelector(".research-trigger"),
+      researchMount: container.querySelector(".research-mount"),
     };
   }
 
@@ -160,15 +164,42 @@
     refs.photoRemove.addEventListener("click", () => setPhoto(refs, null));
   }
 
-  function addWinemakerRow(winemakersList, data = {}) {
-    const frag = winemakerRowTemplate.content.cloneNode(true);
-    const row = frag.querySelector(".winemaker-row");
-    row.querySelector(".wm-name").value = data.name || "";
-    row.querySelector(".wm-email").value = data.email || "";
-    row.querySelector(".wm-phone").value = data.phone || "";
-    row.querySelector(".wm-instagram").value = data.instagram || "";
-    row.querySelector(".remove-winemaker").addEventListener("click", () => row.remove());
-    winemakersList.appendChild(row);
+  // Auto-grow: textareas with .autogrow expand to fit their content so all
+  // text is visible without scrolling or a manual resize handle. scrollHeight
+  // is only meaningful when the element is visible, so autoGrowAll is also
+  // called once a view is shown.
+  function autoGrowEl(el) {
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+
+  function autoGrowAll(refs) {
+    refs.container.querySelectorAll("textarea.autogrow").forEach(autoGrowEl);
+  }
+
+  function wireAutoGrow(refs) {
+    refs.container.querySelectorAll("textarea.autogrow").forEach((el) => {
+      el.addEventListener("input", () => autoGrowEl(el));
+    });
+  }
+
+  // Bottle count / stock level: manual entry plus +/- steppers, clamped >= 0.
+  function clampBottles(value) {
+    let n = parseInt(value, 10);
+    if (isNaN(n) || n < 0) n = 0;
+    return n;
+  }
+
+  function wireBottles(refs) {
+    refs.bottlesMinus.addEventListener("click", () => {
+      refs.bottlesInput.value = Math.max(0, clampBottles(refs.bottlesInput.value) - 1);
+    });
+    refs.bottlesPlus.addEventListener("click", () => {
+      refs.bottlesInput.value = clampBottles(refs.bottlesInput.value) + 1;
+    });
+    refs.bottlesInput.addEventListener("change", () => {
+      refs.bottlesInput.value = clampBottles(refs.bottlesInput.value);
+    });
   }
 
   /** Populate a field-set with an existing wine's values. */
@@ -185,13 +216,12 @@
     refs.vinification.value = wine.vinification || "";
     refs.tastingNotes.value = wine.tasting_notes?.notes || "";
     refs.drinkingWindow.value = wine.tasting_notes?.drinking_window || "";
+    refs.expertContext.value = wine.expert_context || "";
+    refs.bottlesInput.value = clampBottles(wine.bottles ?? 1);
     refs.userNotes.value = wine.user_notes || "";
     setPhoto(refs, wine.label_photo);
-    refs.winemakersList.innerHTML = "";
-    for (const winemaker of wine.winemakers || []) {
-      addWinemakerRow(refs.winemakersList, winemaker);
-    }
     renderProvenance(refs, wine);
+    autoGrowAll(refs);
   }
 
   function prettyUrl(url) {
@@ -243,15 +273,6 @@
 
   /** Build an updated wine object from a field-set, layered onto `base`. */
   function readFieldsIntoWine(refs, base, status) {
-    const winemakers = [...refs.winemakersList.querySelectorAll(".winemaker-row")]
-      .map((row) => ({
-        name: row.querySelector(".wm-name").value.trim(),
-        email: row.querySelector(".wm-email").value.trim() || null,
-        phone: row.querySelector(".wm-phone").value.trim() || null,
-        instagram: row.querySelector(".wm-instagram").value.trim() || null,
-      }))
-      .filter((w) => w.name);
-
     const producer = refs.producer.value.trim();
     const vintage = refs.vintage.value.trim();
 
@@ -261,6 +282,7 @@
       cuvee: refs.cuvee.value.trim(),
       vintage: vintage || null,
       status,
+      bottles: clampBottles(refs.bottlesInput.value),
       label_photo: refs.photoData ?? null,
       tech_facts: {
         ...base.tech_facts,
@@ -278,8 +300,8 @@
         notes: refs.tastingNotes.value.trim(),
         drinking_window: refs.drinkingWindow.value.trim(),
       },
+      expert_context: refs.expertContext.value.trim(),
       user_notes: refs.userNotes.value.trim(),
-      winemakers,
     };
   }
 
@@ -416,16 +438,6 @@
     render(e.target.value);
   });
 
-  // "hunt" — jump to the quick filter. On a long, scrolled list the header
-  // (and its filter) is off-screen; this brings it back, focuses, and selects
-  // any existing query so you can type straight over it. (Online lookup is
-  // Phase B; for now hunt == "let me search what I already have".)
-  searchWineBtn.addEventListener("click", () => {
-    window.scrollTo(0, 0);
-    filterInput.focus();
-    filterInput.select();
-  });
-
   // -------------------------------------------------------------------
   // Add Wine
   // -------------------------------------------------------------------
@@ -448,16 +460,31 @@
         setActiveStatus(addRefs, addSelectedStatus);
       });
     }
-    addRefs.addWinemakerBtn.addEventListener("click", () => addWinemakerRow(addRefs.winemakersList));
     wirePhotoField(addRefs);
-    addResearch.close();
+    wireBottles(addRefs);
+    wireAutoGrow(addRefs);
+    addResearch = createResearchController({
+      trigger: addRefs.researchTrigger,
+      mount: addRefs.researchMount,
+      isReady: () => Boolean(addRefs),
+      buildBase: () => readFieldsIntoWine(addRefs, addDraft, addSelectedStatus),
+      onApplied: (updated) => {
+        // Don't save yet — fold the research into the draft and fill the form
+        // so you can review/adjust, then tap save to add the wine.
+        addDraft = updated;
+        addSelectedStatus = updated.status;
+        writeWineToFields(addRefs, updated);
+        setActiveStatus(addRefs, addSelectedStatus);
+        autoGrowAll(addRefs);
+      },
+    });
 
     showView("add");
+    autoGrowAll(addRefs);
     addRefs.producer.focus();
   });
 
   addBackBtn.addEventListener("click", () => {
-    addResearch.close();
     showView("home");
   });
 
@@ -482,7 +509,7 @@
     }
 
     saveWine(wine);
-    addResearch.close();
+    if (addResearch) addResearch.close();
     showView("home");
     render(filterInput.value);
   });
@@ -512,6 +539,8 @@
     currentWine = wine;
     detailRefs = instantiateFields(detailFieldsContainer);
     wirePhotoField(detailRefs);
+    wireBottles(detailRefs);
+    wireAutoGrow(detailRefs);
     writeWineToFields(detailRefs, currentWine);
 
     for (const btn of detailRefs.statusButtons) {
@@ -523,12 +552,29 @@
         renderDetailMeta();
       });
     }
-    detailRefs.addWinemakerBtn.addEventListener("click", () => addWinemakerRow(detailRefs.winemakersList));
+
+    detailResearch = createResearchController({
+      trigger: detailRefs.researchTrigger,
+      mount: detailRefs.researchMount,
+      isReady: () => Boolean(currentWine && detailRefs),
+      buildBase: () => readFieldsIntoWine(detailRefs, currentWine, currentWine.status),
+      onApplied: (updated) => {
+        currentWine = updated;
+        saveWine(currentWine);
+        writeWineToFields(detailRefs, currentWine);
+        renderDetailMeta();
+        autoGrowAll(detailRefs);
+        detailSaveStatusEl.textContent = "researched";
+        setTimeout(() => {
+          detailSaveStatusEl.textContent = "";
+        }, 1800);
+      },
+    });
 
     renderDetailMeta();
     detailSaveStatusEl.textContent = "";
-    detailResearch.close();
     showView("detail");
+    autoGrowAll(detailRefs);
   }
 
   detailBackBtn.addEventListener("click", () => {
@@ -677,20 +723,6 @@
       );
     }
 
-    if (parsed.winemakers.length) {
-      listEl.appendChild(
-        makePreviewRow({
-          key: "winemakers",
-          label: "winemakers",
-          confidence: null,
-          proposed: parsed.winemakers.map((w) => w.name).join(", "),
-          current: "",
-          willOverwrite: false,
-          checked: true,
-        })
-      );
-    }
-
     if (parsed.sources.length) {
       const note = document.createElement("p");
       note.className = "research-sources-note";
@@ -716,7 +748,7 @@
    * Used for both the Detail view (saves immediately) and the Add view
    * (fills the form; the wine is saved later when you tap save).
    */
-  function createResearchController({ toggleBtn, mount, isReady, buildBase, onApplied }) {
+  function createResearchController({ trigger, mount, isReady, buildBase, onApplied }) {
     const panel = researchPanelTemplate.content.firstElementChild.cloneNode(true);
     mount.appendChild(panel);
 
@@ -746,7 +778,7 @@
       previewList.innerHTML = "";
     }
 
-    toggleBtn.addEventListener("click", () => {
+    trigger.addEventListener("click", () => {
       if (!isReady()) return;
       if (panel.hidden) {
         close();
@@ -811,38 +843,6 @@
 
     return { close };
   }
-
-  const detailResearch = createResearchController({
-    toggleBtn: detailResearchToggle,
-    mount: detailResearchMount,
-    isReady: () => Boolean(currentWine && detailRefs),
-    buildBase: () => readFieldsIntoWine(detailRefs, currentWine, currentWine.status),
-    onApplied: (updated) => {
-      currentWine = updated;
-      saveWine(currentWine);
-      writeWineToFields(detailRefs, currentWine);
-      renderDetailMeta();
-      detailSaveStatusEl.textContent = "researched";
-      setTimeout(() => {
-        detailSaveStatusEl.textContent = "";
-      }, 1800);
-    },
-  });
-
-  const addResearch = createResearchController({
-    toggleBtn: addResearchToggle,
-    mount: addResearchMount,
-    isReady: () => Boolean(addRefs),
-    buildBase: () => readFieldsIntoWine(addRefs, addDraft, addSelectedStatus),
-    onApplied: (updated) => {
-      // Don't save yet — fold the research into the draft and fill the form so
-      // you can review/adjust, then tap save to add the wine.
-      addDraft = updated;
-      addSelectedStatus = updated.status;
-      writeWineToFields(addRefs, updated);
-      setActiveStatus(addRefs, addSelectedStatus);
-    },
-  });
 
   // -------------------------------------------------------------------
   // Boot

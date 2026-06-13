@@ -12,6 +12,19 @@
     STATUS_LABELS,
   } = window.WineCave;
 
+  const {
+    RESEARCH_FIELDS,
+    buildResearchPrompt,
+    parseResearchResponse,
+    applyResearchToWine,
+  } = window.WineCave.research;
+
+  const CONFIDENCE_TITLES = {
+    sourced: "Found in a reliable source",
+    inferred: "Reasoned from related facts",
+    not_found: "No reliable information found",
+  };
+
   const listEl = document.getElementById("wine-list");
   const filterInput = document.getElementById("filter-input");
 
@@ -32,6 +45,21 @@
   const detailMetaEl = document.getElementById("detail-meta");
   const detailSaveStatusEl = document.getElementById("detail-save-status");
 
+  // Research panel (dossier paste-back)
+  const researchToggleBtn = document.getElementById("research-toggle-btn");
+  const researchPanel = document.getElementById("research-panel");
+  const researchInputView = document.getElementById("research-input");
+  const researchReviewView = document.getElementById("research-review");
+  const researchCopyBtn = document.getElementById("research-copy-btn");
+  const researchCopyStatus = document.getElementById("research-copy-status");
+  const researchPaste = document.getElementById("research-paste");
+  const researchError = document.getElementById("research-error");
+  const researchCancelBtn = document.getElementById("research-cancel-btn");
+  const researchReviewBtn = document.getElementById("research-review-btn");
+  const researchPreviewList = document.getElementById("research-preview-list");
+  const researchBackBtn = document.getElementById("research-back-btn");
+  const researchApplyBtn = document.getElementById("research-apply-btn");
+
   const fieldsTemplate = document.getElementById("wine-fields-template");
   const winemakerRowTemplate = document.getElementById("winemaker-row-template");
 
@@ -50,6 +78,7 @@
 
   function getFieldRefs(container) {
     return {
+      container,
       producer: container.querySelector(".f-producer"),
       cuvee: container.querySelector(".f-cuvee"),
       vintage: container.querySelector(".f-vintage"),
@@ -169,6 +198,54 @@
     for (const winemaker of wine.winemakers || []) {
       addWinemakerRow(refs.winemakersList, winemaker);
     }
+    renderProvenance(refs, wine);
+  }
+
+  function prettyUrl(url) {
+    return url.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  }
+
+  /**
+   * Show research provenance on a field-set: a confidence dot beside each
+   * researched field and a sources list. Idempotent — clears prior dots first.
+   */
+  function renderProvenance(refs, wine) {
+    const container = refs.container;
+    container.querySelectorAll(".confidence-dot.injected").forEach((d) => d.remove());
+
+    const flags = wine.confidence_flags || {};
+    const flagKeys = Object.keys(flags);
+    for (const key of flagKeys) {
+      const labelEl = container.querySelector(`[data-cf="${key}"]`);
+      if (!labelEl) continue;
+      const dot = document.createElement("span");
+      dot.className = "confidence-dot injected";
+      dot.dataset.confidence = flags[key];
+      dot.title = CONFIDENCE_TITLES[flags[key]] || flags[key];
+      labelEl.appendChild(dot);
+    }
+
+    const block = container.querySelector(".provenance-block");
+    const legend = container.querySelector(".confidence-legend");
+    const list = container.querySelector(".sources-list");
+    if (!block) return;
+
+    const sources = wine.sources || [];
+    list.innerHTML = "";
+    for (const url of sources) {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = prettyUrl(url);
+      li.appendChild(a);
+      list.appendChild(li);
+    }
+
+    if (legend) legend.hidden = flagKeys.length === 0;
+    list.hidden = sources.length === 0;
+    block.hidden = flagKeys.length === 0 && sources.length === 0;
   }
 
   /** Build an updated wine object from a field-set, layered onto `base`. */
@@ -449,6 +526,7 @@
 
     renderDetailMeta();
     detailSaveStatusEl.textContent = "";
+    closeResearch();
     showView("detail");
   }
 
@@ -489,6 +567,219 @@
     setTimeout(() => {
       detailSaveStatusEl.textContent = "";
     }, 1500);
+  });
+
+  // -------------------------------------------------------------------
+  // Research (dossier paste-back)
+  // -------------------------------------------------------------------
+
+  let pendingResearch = null;
+
+  function fallbackCopy(text) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "absolute";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard
+        .writeText(text)
+        .then(() => true)
+        .catch(() => fallbackCopy(text));
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  function closeResearch() {
+    pendingResearch = null;
+    researchPanel.hidden = true;
+    researchInputView.hidden = false;
+    researchReviewView.hidden = true;
+    researchPaste.value = "";
+    researchError.hidden = true;
+    researchError.textContent = "";
+    researchCopyStatus.textContent = "";
+    researchPreviewList.innerHTML = "";
+  }
+
+  function makePreviewRow({ key, label, confidence, proposed, current, willOverwrite, checked }) {
+    const row = document.createElement("label");
+    row.className = "preview-row";
+
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "preview-check";
+    check.dataset.key = key;
+    check.checked = checked;
+    row.appendChild(check);
+
+    const body = document.createElement("span");
+    body.className = "preview-body";
+
+    const head = document.createElement("span");
+    head.className = "preview-head";
+    const labelEl = document.createElement("span");
+    labelEl.className = "preview-label";
+    labelEl.textContent = label;
+    head.appendChild(labelEl);
+    if (confidence) {
+      const dot = document.createElement("span");
+      dot.className = "confidence-dot";
+      dot.dataset.confidence = confidence;
+      dot.title = CONFIDENCE_TITLES[confidence] || confidence;
+      head.appendChild(dot);
+    }
+    if (willOverwrite) {
+      const badge = document.createElement("span");
+      badge.className = "preview-overwrite";
+      badge.textContent = "replaces existing";
+      head.appendChild(badge);
+    }
+    body.appendChild(head);
+
+    const proposedEl = document.createElement("span");
+    proposedEl.className = "preview-proposed";
+    proposedEl.textContent = proposed;
+    body.appendChild(proposedEl);
+
+    if (willOverwrite) {
+      const cur = document.createElement("span");
+      cur.className = "preview-current";
+      cur.textContent = `currently: ${current}`;
+      body.appendChild(cur);
+    }
+
+    row.appendChild(body);
+    return row;
+  }
+
+  function renderResearchPreview(parsed, baseWine) {
+    researchPreviewList.innerHTML = "";
+
+    for (const f of RESEARCH_FIELDS) {
+      const field = parsed.fields[f.key];
+      if (!field || !field.value) continue;
+      const current = window.WineCave.research.getWineFieldValue(baseWine, f.key);
+      const willOverwrite = Boolean(current) && current !== field.value;
+      researchPreviewList.appendChild(
+        makePreviewRow({
+          key: f.key,
+          label: f.label,
+          confidence: field.confidence,
+          proposed: field.value,
+          current,
+          willOverwrite,
+          checked: !current, // preselect only when the field is empty
+        })
+      );
+    }
+
+    if (parsed.winemakers.length) {
+      researchPreviewList.appendChild(
+        makePreviewRow({
+          key: "winemakers",
+          label: "winemakers",
+          confidence: null,
+          proposed: parsed.winemakers.map((w) => w.name).join(", "),
+          current: "",
+          willOverwrite: false,
+          checked: true,
+        })
+      );
+    }
+
+    if (parsed.sources.length) {
+      const note = document.createElement("p");
+      note.className = "research-sources-note";
+      const n = parsed.sources.length;
+      note.textContent = `${n} source${n > 1 ? "s" : ""} will be added.`;
+      researchPreviewList.appendChild(note);
+    }
+
+    if (!researchPreviewList.children.length) {
+      const p = document.createElement("p");
+      p.className = "research-empty";
+      p.textContent = "The reply didn't contain any new facts to add.";
+      researchPreviewList.appendChild(p);
+    }
+  }
+
+  researchToggleBtn.addEventListener("click", () => {
+    if (researchPanel.hidden) {
+      closeResearch();
+      researchPanel.hidden = false;
+    } else {
+      closeResearch();
+    }
+  });
+
+  researchCancelBtn.addEventListener("click", closeResearch);
+
+  researchCopyBtn.addEventListener("click", () => {
+    if (!currentWine) return;
+    copyText(buildResearchPrompt(currentWine)).then((ok) => {
+      researchCopyStatus.textContent = ok ? "copied" : "couldn't copy — select the text manually";
+      setTimeout(() => {
+        researchCopyStatus.textContent = "";
+      }, 2500);
+    });
+  });
+
+  researchReviewBtn.addEventListener("click", () => {
+    if (!currentWine || !detailRefs) return;
+    researchError.hidden = true;
+    let parsed;
+    try {
+      parsed = parseResearchResponse(researchPaste.value);
+    } catch (err) {
+      researchError.textContent = err.message;
+      researchError.hidden = false;
+      return;
+    }
+    pendingResearch = parsed;
+    // Preview against the current form state so unsaved edits count as "current".
+    const baseWine = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
+    renderResearchPreview(parsed, baseWine);
+    researchInputView.hidden = true;
+    researchReviewView.hidden = false;
+  });
+
+  researchBackBtn.addEventListener("click", () => {
+    researchReviewView.hidden = true;
+    researchInputView.hidden = false;
+  });
+
+  researchApplyBtn.addEventListener("click", () => {
+    if (!pendingResearch || !currentWine || !detailRefs) return;
+    const acceptedKeys = [...researchPreviewList.querySelectorAll(".preview-check")]
+      .filter((c) => c.checked)
+      .map((c) => c.dataset.key);
+
+    // Fold in any unsaved form edits, then layer the accepted research on top.
+    const base = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
+    currentWine = applyResearchToWine(base, pendingResearch, acceptedKeys);
+    saveWine(currentWine);
+
+    writeWineToFields(detailRefs, currentWine);
+    renderDetailMeta();
+    closeResearch();
+
+    detailSaveStatusEl.textContent = "researched";
+    setTimeout(() => {
+      detailSaveStatusEl.textContent = "";
+    }, 1800);
   });
 
   // -------------------------------------------------------------------

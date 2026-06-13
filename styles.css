@@ -589,3 +589,236 @@ textarea.narrative {
   background: var(--accent);
   color: var(--paper);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Research (dossier paste-back) + provenance                             */
+/* ---------------------------------------------------------------------- */
+
+.header-actions {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.research-panel {
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  background: rgba(28, 26, 23, 0.02);
+}
+
+.research-help {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+  line-height: 1.55;
+}
+
+.research-help strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.research-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.research-actions--start {
+  justify-content: flex-start;
+  margin-top: 0;
+  margin-bottom: var(--space-3);
+}
+
+.research-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--muted);
+}
+
+.research-paste {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: var(--space-2);
+  background: var(--paper);
+}
+
+.research-paste:focus {
+  border-color: var(--accent);
+}
+
+.research-error {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin: var(--space-2) 0 0;
+}
+
+.research-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+}
+
+/* Preview list */
+
+.preview-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+}
+
+.preview-check {
+  margin-top: 4px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preview-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--muted);
+}
+
+.preview-overwrite {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.preview-proposed {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.preview-current {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.research-sources-note,
+.research-empty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: var(--space-3) 0 0;
+}
+
+/* Confidence dots + legend */
+
+.confidence-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.confidence-dot[data-confidence="sourced"] {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.confidence-dot[data-confidence="inferred"] {
+  background: linear-gradient(90deg, var(--ink) 0 50%, transparent 50% 100%);
+  border: 1px solid var(--ink);
+}
+
+.confidence-dot[data-confidence="not_found"] {
+  background: transparent;
+  border: 1px solid var(--muted);
+}
+
+[data-cf] .confidence-dot {
+  margin-left: 6px;
+}
+
+.confidence-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+}
+
+.confidence-legend .confidence-dot {
+  margin-left: 0;
+}
+
+/* Sources */
+
+.provenance-block {
+  margin-top: var(--space-5);
+}
+
+.sources-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sources-list li {
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.sources-list a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.15s ease;
+}
+
+.sources-list a:hover {
+  color: var(--accent);
+}

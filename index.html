@@ -70,10 +70,53 @@
       <section id="view-detail" class="view" hidden>
         <header class="view-header">
           <button class="action-link" type="button" id="detail-back-btn">‹ back</button>
-          <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
+          <div class="header-actions">
+            <button class="action-link" type="button" id="research-toggle-btn">
+              <span class="glyph">⌕</span> research
+            </button>
+            <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
+          </div>
         </header>
 
         <p class="meta-line" id="detail-meta"></p>
+
+        <!-- ============ RESEARCH (dossier paste-back) ============ -->
+        <section class="research-panel" id="research-panel" hidden>
+          <div class="research-input" id="research-input">
+            <p class="research-help">
+              Tap <strong>copy request</strong>, paste it into Claude or ChatGPT,
+              then paste the reply back below and tap <strong>review</strong>.
+            </p>
+            <div class="research-actions research-actions--start">
+              <button type="button" class="action-link" id="research-copy-btn">
+                <span class="glyph">⧉</span> copy request
+              </button>
+              <span class="research-status" id="research-copy-status"></span>
+            </div>
+            <textarea
+              id="research-paste"
+              class="research-paste"
+              rows="4"
+              placeholder="paste the assistant's reply here…"
+              autocomplete="off"
+              spellcheck="false"
+            ></textarea>
+            <p class="research-error" id="research-error" hidden></p>
+            <div class="research-actions">
+              <button type="button" class="action-link action-link--quiet" id="research-cancel-btn">cancel</button>
+              <button type="button" class="save-btn" id="research-review-btn">review</button>
+            </div>
+          </div>
+
+          <div class="research-review" id="research-review" hidden>
+            <p class="research-label">review &amp; apply — unchecked items are left as they are</p>
+            <div class="research-preview-list" id="research-preview-list"></div>
+            <div class="research-actions">
+              <button type="button" class="action-link action-link--quiet" id="research-back-btn">back</button>
+              <button type="button" class="save-btn" id="research-apply-btn">apply selected</button>
+            </div>
+          </div>
+        </section>
 
         <form id="detail-form" novalidate>
           <div class="wine-fields" id="detail-fields"></div>
@@ -135,32 +178,32 @@
 
       <div class="field-row">
         <div class="field">
-          <label>region</label>
+          <label data-cf="region">region</label>
           <input type="text" class="f-region" autocomplete="off" />
         </div>
         <div class="field">
-          <label>country</label>
+          <label data-cf="country">country</label>
           <input type="text" class="f-country" autocomplete="off" />
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>colour</label>
+          <label data-cf="colour">colour</label>
           <input type="text" class="f-colour" placeholder="rouge / blanc / rosé / orange" autocomplete="off" />
         </div>
         <div class="field">
-          <label>terroir type</label>
+          <label data-cf="terroir_type">terroir type</label>
           <input type="text" class="f-terroir" autocomplete="off" />
         </div>
       </div>
 
       <div class="field">
-        <label>grape varietals</label>
+        <label data-cf="grape_varietals">grape varietals</label>
         <input type="text" class="f-grapes" placeholder="composition may vary by vintage" autocomplete="off" />
       </div>
 
-      <p class="section-label">vinification</p>
+      <p class="section-label" data-cf="vinification">vinification</p>
       <div class="field">
         <textarea
           class="f-vinification narrative"
@@ -169,12 +212,12 @@
         ></textarea>
       </div>
 
-      <p class="section-label">tasting notes</p>
+      <p class="section-label" data-cf="tasting_notes">tasting notes</p>
       <div class="field">
         <textarea class="f-tasting-notes narrative" rows="3"></textarea>
       </div>
       <div class="field">
-        <label>drinking window</label>
+        <label data-cf="drinking_window">drinking window</label>
         <input type="text" class="f-drinking-window" placeholder="e.g. now–2030" autocomplete="off" />
       </div>
 
@@ -187,6 +230,16 @@
       <p class="section-label">notes</p>
       <div class="field">
         <textarea class="f-user-notes narrative" rows="3" placeholder="your own notes"></textarea>
+      </div>
+
+      <div class="provenance-block" hidden>
+        <p class="section-label">sources</p>
+        <p class="confidence-legend">
+          <span class="confidence-dot" data-confidence="sourced"></span> sourced
+          <span class="confidence-dot" data-confidence="inferred"></span> inferred
+          <span class="confidence-dot" data-confidence="not_found"></span> not found
+        </p>
+        <ul class="sources-list"></ul>
       </div>
     </template>
 
@@ -218,6 +271,7 @@
     </template>
 
     <script src="./storage.js"></script>
+    <script src="./research.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

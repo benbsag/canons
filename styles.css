@@ -23,6 +23,7 @@
   /* Type */
   --font-mono: "Courier Prime", "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-serif: "Spectral", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
 
   /* Rhythm (shared across all themes) */
   --space-1: 4px;
@@ -42,6 +43,112 @@ html[data-theme="marble"] {
   --muted: #82867e;
   --hairline: #d6d9d1;
   --accent: #3f5c4c;
+}
+
+/* ---- Swiss / International Typographic Style ----------------------------
+   Space Grotesk throughout, larger and bolder, no italics. The three Swiss
+   themes share this typography and differ only in palette. Overriding the
+   font variables flips every component to Space Grotesk in one move. */
+
+html[data-theme^="swiss"] {
+  --font-mono: var(--font-sans);
+  --font-serif: var(--font-sans);
+}
+
+html[data-theme="swiss-white"] {
+  --paper: #ffffff;
+  --ink: #000000;
+  --muted: #6f6f6f;
+  --hairline: #e4e4e4;
+  --accent: #000000;
+}
+
+html[data-theme="swiss-black"] {
+  --paper: #000000;
+  --ink: #ffffff;
+  --muted: #9a9a9a;
+  --hairline: #2b2b2b;
+  --accent: #ffffff;
+  color-scheme: dark;
+}
+
+html[data-theme="swiss-primary"] {
+  --paper: #ffffff;
+  --ink: #000000;
+  --muted: #6f6f6f;
+  --hairline: #e4e4e4;
+  --accent: #000000;
+}
+
+/* Shared Swiss typographic treatment — bigger, bolder, gridded. */
+html[data-theme^="swiss"] body {
+  font-size: 17px;
+}
+
+html[data-theme^="swiss"] .brand {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+html[data-theme^="swiss"] .region-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+html[data-theme^="swiss"] .wine-producer {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+html[data-theme^="swiss"] .wine-cuvee {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 23px;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme^="swiss"] .wine-vintage {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+html[data-theme^="swiss"] .field-cuvee textarea {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 20px;
+}
+
+html[data-theme^="swiss"] .section-label {
+  font-weight: 700;
+}
+
+html[data-theme^="swiss"] .add-btn-large,
+html[data-theme^="swiss"] .research-trigger,
+html[data-theme^="swiss"] .save-btn {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* The stamp's multiply blend is tuned for ink-on-paper; normalise it so it
+   stays visible on the white and black Swiss grounds. */
+html[data-theme^="swiss"] .stamp {
+  mix-blend-mode: normal;
+  opacity: 0.85;
+  font-weight: 700;
+}
+
+/* Swiss Primary — each non-finished entry's text takes a random primary
+   colour (assigned in JS); let the producer/cuvée/vintage inherit it. */
+html[data-theme="swiss-primary"] .wine-entry:not(.wine-entry--finished) .wine-producer,
+html[data-theme="swiss-primary"] .wine-entry:not(.wine-entry--finished) .wine-cuvee,
+html[data-theme="swiss-primary"] .wine-entry:not(.wine-entry--finished) .wine-vintage {
+  color: inherit;
 }
 
 * {

@@ -34,9 +34,30 @@
   const THEMES = [
     { id: "paper", label: "Paper", swatches: ["#f3ede1", "#1c1a17", "#8e3b2f"] },
     { id: "marble", label: "Marble", swatches: ["#eef0ec", "#20231f", "#3f5c4c"] },
+    { id: "swiss-white", label: "Swiss White", swatches: ["#ffffff", "#000000"] },
+    { id: "swiss-black", label: "Swiss Black", swatches: ["#000000", "#ffffff"] },
+    { id: "swiss-primary", label: "Swiss Primary", swatches: ["#e30613", "#0047ff", "#00a14b", "#c8930a"] },
   ];
   const DEFAULT_THEME = "paper";
   const THEME_KEY = "canons:theme:v1";
+
+  // Swiss Primary palette — each wine entry gets one, picked deterministically
+  // from its id so the colour is stable across re-renders (no flicker while
+  // filtering) yet varied across the list. Golden is darkened to read on white.
+  const PRIMARY_COLOURS = ["#e30613", "#0047ff", "#00a14b", "#c8930a"];
+
+  function hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (h * 31 + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h);
+  }
+
+  function primaryColour(wine) {
+    const seed = wine.id || wine.producer || wine.cuvee || "";
+    return PRIMARY_COLOURS[hashString(seed) % PRIMARY_COLOURS.length];
+  }
 
   function readSavedTheme() {
     try {
@@ -480,6 +501,10 @@
     li.className = "wine-entry";
     if (wine.status === STATUS.AUSGETRUNKEN) {
       li.classList.add("wine-entry--finished");
+    }
+    // Swiss Primary: colour the whole entry with its assigned primary.
+    if (currentThemeId() === "swiss-primary") {
+      li.style.color = primaryColour(wine);
     }
     li.addEventListener("click", () => openDetail(wine.id));
 
@@ -986,6 +1011,8 @@
       /* private mode / quota — theme just won't persist */
     }
     renderThemeList();
+    // Re-render the list so per-entry colours (Swiss Primary) apply or clear.
+    render(filterInput.value);
   }
 
   function renderThemeList() {

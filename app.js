@@ -26,8 +26,45 @@
     not_found: "No reliable information found",
   };
 
+  // -------------------------------------------------------------------
+  // Themes — add a new style here (and a matching html[data-theme] block
+  // in styles.css) and it appears in the settings menu automatically.
+  // `swatches` are just for the menu preview: [paper, ink, accent].
+  // -------------------------------------------------------------------
+  const THEMES = [
+    { id: "paper", label: "Paper", swatches: ["#f3ede1", "#1c1a17", "#8e3b2f"] },
+    { id: "marble", label: "Marble", swatches: ["#eef0ec", "#20231f", "#3f5c4c"] },
+  ];
+  const DEFAULT_THEME = "paper";
+  const THEME_KEY = "canons:theme:v1";
+
+  function readSavedTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function currentThemeId() {
+    const saved = readSavedTheme();
+    return THEMES.some((t) => t.id === saved) ? saved : DEFAULT_THEME;
+  }
+
+  function applyTheme(id) {
+    document.documentElement.dataset.theme = id;
+  }
+
+  // Apply immediately so there's no flash of the default theme.
+  applyTheme(currentThemeId());
+
   const listEl = document.getElementById("wine-list");
   const filterInput = document.getElementById("filter-input");
+
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsOverlay = document.getElementById("settings-overlay");
+  const settingsClose = document.getElementById("settings-close");
+  const themeListEl = document.getElementById("theme-list");
 
   const viewHome = document.getElementById("view-home");
   const viewAdd = document.getElementById("view-add");
@@ -936,6 +973,71 @@
 
     return { close };
   }
+
+  // -------------------------------------------------------------------
+  // Settings: theme switcher
+  // -------------------------------------------------------------------
+
+  function setTheme(id) {
+    applyTheme(id);
+    try {
+      localStorage.setItem(THEME_KEY, id);
+    } catch (err) {
+      /* private mode / quota — theme just won't persist */
+    }
+    renderThemeList();
+  }
+
+  function renderThemeList() {
+    const active = currentThemeId();
+    themeListEl.innerHTML = "";
+    for (const theme of THEMES) {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "theme-option";
+      if (theme.id === active) option.classList.add("is-active");
+
+      const swatches = document.createElement("span");
+      swatches.className = "theme-swatches";
+      for (const colour of theme.swatches) {
+        const sw = document.createElement("span");
+        sw.className = "theme-swatch";
+        sw.style.background = colour;
+        swatches.appendChild(sw);
+      }
+      option.appendChild(swatches);
+
+      const name = document.createElement("span");
+      name.className = "theme-name";
+      name.textContent = theme.label;
+      option.appendChild(name);
+
+      if (theme.id === active) {
+        const check = document.createElement("span");
+        check.className = "theme-check";
+        check.textContent = "✓";
+        option.appendChild(check);
+      }
+
+      option.addEventListener("click", () => setTheme(theme.id));
+      themeListEl.appendChild(option);
+    }
+  }
+
+  function openSettings() {
+    renderThemeList();
+    settingsOverlay.hidden = false;
+  }
+
+  function closeSettings() {
+    settingsOverlay.hidden = true;
+  }
+
+  settingsBtn.addEventListener("click", openSettings);
+  settingsClose.addEventListener("click", closeSettings);
+  settingsOverlay.addEventListener("click", (e) => {
+    if (e.target === settingsOverlay) closeSettings();
+  });
 
   // -------------------------------------------------------------------
   // Boot

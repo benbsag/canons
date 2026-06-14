@@ -4,19 +4,27 @@
    typewriter + warm serif type, calm and unfussy.
 --------------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------------
+   THEMES
+   Each theme just overrides the palette + font variables below. "Paper" (the
+   original look) lives in :root and is the default. New styles are added as
+   another html[data-theme="…"] block — no structural changes needed. The
+   active theme is chosen in the settings menu and saved to localStorage.
+--------------------------------------------------------------------------- */
+
 :root {
-  /* Palette (§8) — intentionally hardcoded, does not invert with dark mode */
+  /* Palette — "Paper" (default theme) */
   --paper: #f3ede1;
   --ink: #1c1a17;
   --muted: #857b6d;
   --hairline: #d9cfbd;
-  --accent: #8e3b2f; /* rubber-stamp oxblood, used sparingly */
+  --accent: #8e3b2f; /* rubber-stamp oxblood */
 
   /* Type */
   --font-mono: "Courier Prime", "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-serif: "Spectral", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 
-  /* Rhythm */
+  /* Rhythm (shared across all themes) */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
@@ -25,6 +33,15 @@
   --space-6: 64px;
 
   --max-width: 640px;
+}
+
+/* Example alternate theme — cool marble whites with a deep-green accent. */
+html[data-theme="marble"] {
+  --paper: #eef0ec;
+  --ink: #20231f;
+  --muted: #82867e;
+  --hairline: #d6d9d1;
+  --accent: #3f5c4c;
 }
 
 * {
@@ -76,6 +93,143 @@ body {
   text-transform: uppercase;
   color: var(--ink);
   margin: 0 0 var(--space-4);
+}
+
+.brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: -2px;
+  cursor: pointer;
+  color: var(--muted);
+  display: inline-flex;
+  transition: color 0.15s ease;
+}
+
+.icon-btn:hover {
+  color: var(--accent);
+}
+
+.icon-btn svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* Settings sheet */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(28, 26, 23, 0.38);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.settings-overlay[hidden] {
+  display: none;
+}
+
+.settings-sheet {
+  width: 100%;
+  max-width: var(--max-width);
+  background: var(--paper);
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  border: 1px solid var(--hairline);
+  padding: var(--space-4) var(--space-3) var(--space-6);
+  box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.18);
+}
+
+.settings-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.settings-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0;
+}
+
+.settings-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+  color: var(--muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  margin: 0 0 var(--space-3);
+}
+
+.theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: var(--space-3);
+  transition: border-color 0.15s ease;
+}
+
+.theme-option:hover {
+  border-color: var(--muted);
+}
+
+.theme-option.is-active {
+  border-color: var(--accent);
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.theme-swatch {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid rgba(28, 26, 23, 0.15);
+}
+
+.theme-name {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--ink);
+}
+
+.theme-check {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
 }
 
 .filter-line {

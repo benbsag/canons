@@ -260,6 +260,15 @@ body {
   justify-content: space-between;
 }
 
+/* CANONS title — 2x the per-theme brand size, in every theme. */
+.brand-row .brand {
+  font-size: 30px;
+}
+
+html[data-theme^="swiss"] .brand-row .brand {
+  font-size: 36px;
+}
+
 .icon-btn {
   background: none;
   border: none;

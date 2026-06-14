@@ -37,6 +37,7 @@
     { id: "swiss-white", label: "Swiss White", swatches: ["#ffffff", "#000000"] },
     { id: "swiss-black", label: "Swiss Black", swatches: ["#000000", "#ffffff"] },
     { id: "swiss-primary", label: "Swiss Primary", swatches: ["#e30613", "#0047ff", "#00a14b", "#c8930a"] },
+    { id: "comic", label: "Comic", swatches: ["#e6261f", "#f7c000", "#3aa53b", "#1f8fd6", "#8e44ad"] },
   ];
   const DEFAULT_THEME = "paper";
   const THEME_KEY = "canons:theme:v1";
@@ -78,6 +79,63 @@
 
   // Apply immediately so there's no flash of the default theme.
   applyTheme(currentThemeId());
+
+  // -------------------------------------------------------------------
+  // Comic theme — rainbow letters. Each letter of display text becomes a
+  // coloured <span> cycling the rainbow. CSS can't colour letters
+  // individually, so this is done in JS. It's idempotent (guarded by
+  // data-rainbow-orig) and reversible (restores the stored innerHTML).
+  // Inputs/textareas are skipped — form controls render text single-colour.
+  // -------------------------------------------------------------------
+  const RAINBOW = ["#e6261f", "#f06f24", "#f7c000", "#3aa53b", "#1f8fd6", "#3b41c5", "#8e44ad"];
+  const RAINBOW_SELECTOR = [
+    ".brand", ".region-label", ".wine-producer", ".wine-cuvee", ".wine-vintage",
+    ".wine-envie-tag", ".stamp", ".empty-state", ".section-label",
+    ".field label", ".add-btn-large", ".save-btn", ".research-trigger",
+    ".action-link", ".status-option", ".research-help", ".research-label",
+    ".settings-title", ".settings-label", ".theme-name",
+  ].join(", ");
+
+  function rainbowizeElement(el) {
+    if (el.dataset.rainbowOrig !== undefined) return; // already done
+    el.dataset.rainbowOrig = el.innerHTML;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    const textNodes = [];
+    let node;
+    while ((node = walker.nextNode())) textNodes.push(node);
+    for (const textNode of textNodes) {
+      const tag = textNode.parentNode.nodeName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SCRIPT" || tag === "STYLE") continue;
+      const text = textNode.nodeValue;
+      if (!text.replace(/\s/g, "")) continue;
+      const frag = document.createDocumentFragment();
+      let i = 0;
+      for (const ch of text) {
+        if (/\s/.test(ch)) {
+          frag.appendChild(document.createTextNode(ch));
+          continue;
+        }
+        const span = document.createElement("span");
+        span.textContent = ch;
+        span.style.color = RAINBOW[i % RAINBOW.length];
+        frag.appendChild(span);
+        i++;
+      }
+      textNode.parentNode.replaceChild(frag, textNode);
+    }
+  }
+
+  function applyRainbow(root) {
+    if (currentThemeId() !== "comic") return;
+    (root || document).querySelectorAll(RAINBOW_SELECTOR).forEach(rainbowizeElement);
+  }
+
+  function clearRainbow() {
+    document.querySelectorAll("[data-rainbow-orig]").forEach((el) => {
+      el.innerHTML = el.dataset.rainbowOrig;
+      delete el.dataset.rainbowOrig;
+    });
+  }
 
   const listEl = document.getElementById("wine-list");
   const filterInput = document.getElementById("filter-input");
@@ -568,6 +626,7 @@
         ? "The cellar is empty — add a wine to begin."
         : "Nothing matches that search.";
       listEl.appendChild(empty);
+      applyRainbow(listEl);
       return;
     }
 
@@ -589,6 +648,7 @@
 
       listEl.appendChild(group);
     }
+    applyRainbow(listEl);
   }
 
   filterInput.addEventListener("input", (e) => {
@@ -637,6 +697,7 @@
 
     showView("add");
     autoGrowAll(addRefs);
+    applyRainbow(addFieldsContainer);
     addRefs.producer.focus();
   });
 
@@ -730,6 +791,7 @@
     detailSaveStatusEl.textContent = "";
     showView("detail");
     autoGrowAll(detailRefs);
+    applyRainbow(detailFieldsContainer);
   }
 
   detailBackBtn.addEventListener("click", () => {
@@ -1010,9 +1072,12 @@
     } catch (err) {
       /* private mode / quota — theme just won't persist */
     }
+    clearRainbow(); // restore any rainbow text before switching
     renderThemeList();
     // Re-render the list so per-entry colours (Swiss Primary) apply or clear.
     render(filterInput.value);
+    // Re-apply rainbow to chrome + forms if the new theme is Comic (no-op otherwise).
+    applyRainbow(document);
   }
 
   function renderThemeList() {
@@ -1054,6 +1119,7 @@
   function openSettings() {
     renderThemeList();
     settingsOverlay.hidden = false;
+    applyRainbow(settingsOverlay);
   }
 
   function closeSettings() {
@@ -1071,6 +1137,7 @@
   // -------------------------------------------------------------------
 
   render();
+  applyRainbow(document); // rainbow chrome on load if Comic is the saved theme
 
   // Register the service worker for installability (PWA). Service workers
   // require http(s) — this silently no-ops when opened via file://.

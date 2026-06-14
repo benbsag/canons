@@ -80,6 +80,38 @@ html[data-theme="swiss-primary"] {
   --accent: #000000;
 }
 
+/* ---- Comic — playful: Comic Relief, rainbow letters (set in JS), cream
+   ground with a tiled wallpaper of little sloshing wine glasses. -------- */
+
+html[data-theme="comic"] {
+  --paper: #f3e9d2;
+  --ink: #5a4a2f;
+  --muted: #a4926c;
+  --hairline: #ddcca4;
+  --accent: #d2552f;
+  --font-mono: "Comic Relief", "Comic Sans MS", "Chalkboard SE", cursive;
+  --font-serif: "Comic Relief", "Comic Sans MS", "Chalkboard SE", cursive;
+}
+
+html[data-theme="comic"] body {
+  background-color: #f3e9d2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='66' viewBox='0 0 66 66'%3E%3Cg fill='none' stroke='%23dcc79c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' transform='rotate(45 33 33)'%3E%3Cpath d='M25 20 Q33 35 41 20'/%3E%3Cpath d='M33 35 V47'/%3E%3Cpath d='M26 49 H40'/%3E%3Cpath d='M41 20 Q48 14 46 8'/%3E%3Ccircle cx='46' cy='5' r='1.3'/%3E%3Cpath d='M25 20 Q22 16 24 12'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 66px 66px;
+}
+
+/* Outline the filled buttons so the rainbow letters stay readable. */
+html[data-theme="comic"] .add-btn-large,
+html[data-theme="comic"] .save-btn,
+html[data-theme="comic"] .research-trigger {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--hairline);
+}
+
+html[data-theme="comic"] .wine-cuvee {
+  font-style: normal;
+}
+
 /* Shared Swiss typographic treatment — bigger, bolder, gridded. */
 html[data-theme^="swiss"] body {
   font-size: 17px;

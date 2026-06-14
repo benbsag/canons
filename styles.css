@@ -404,6 +404,48 @@ html[data-theme^="swiss"] .brand-row .brand {
   color: var(--accent);
 }
 
+/* Backup / restore */
+
+.settings-label--spaced {
+  margin-top: var(--space-5);
+}
+
+.backup-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.backup-btn {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.backup-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.backup-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin: var(--space-2) 0 0;
+  min-height: 1em;
+}
+
 .filter-line {
   position: relative;
   margin-bottom: var(--space-3);

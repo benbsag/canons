@@ -8,6 +8,7 @@
     createWine,
     filterWines,
     seedIfEmpty,
+    replaceAllWines,
     STATUS,
     STATUS_LABELS,
     CONFIDENCE,
@@ -146,6 +147,9 @@
   const settingsOverlay = document.getElementById("settings-overlay");
   const settingsClose = document.getElementById("settings-close");
   const themeListEl = document.getElementById("theme-list");
+  const exportBtn = document.getElementById("export-btn");
+  const importInput = document.getElementById("import-input");
+  const backupStatus = document.getElementById("backup-status");
 
   const viewHome = document.getElementById("view-home");
   const viewAdd = document.getElementById("view-add");
@@ -1136,6 +1140,79 @@
   settingsClose.addEventListener("click", closeSettings);
   settingsOverlay.addEventListener("click", (e) => {
     if (e.target === settingsOverlay) closeSettings();
+  });
+
+  // -------------------------------------------------------------------
+  // Backup / restore — export the whole cellar to a JSON file, and import
+  // one back. Import replaces the current collection (restore semantics).
+  // -------------------------------------------------------------------
+
+  function flashBackupStatus(text) {
+    backupStatus.textContent = text;
+    setTimeout(() => {
+      backupStatus.textContent = "";
+    }, 3000);
+  }
+
+  exportBtn.addEventListener("click", () => {
+    const wines = getAllWines();
+    const payload = {
+      app: "CANONS",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      wines,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `canons-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    flashBackupStatus(`exported ${wines.length} wine${wines.length === 1 ? "" : "s"}`);
+  });
+
+  importInput.addEventListener("change", () => {
+    const file = importInput.files && importInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => {
+      flashBackupStatus("couldn't read that file");
+      importInput.value = "";
+    };
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const wines = Array.isArray(parsed)
+          ? parsed
+          : parsed && Array.isArray(parsed.wines)
+          ? parsed.wines
+          : null;
+        if (!wines) throw new Error("no wines in file");
+
+        const current = getAllWines().length;
+        const ok = confirm(
+          `Import ${wines.length} wine${wines.length === 1 ? "" : "s"} from this backup?\n\n` +
+            `This replaces your current ${current} wine${current === 1 ? "" : "s"}.`
+        );
+        if (!ok) {
+          importInput.value = "";
+          return;
+        }
+
+        const saved = replaceAllWines(wines);
+        render(filterInput.value);
+        flashBackupStatus(`imported ${saved.length} wine${saved.length === 1 ? "" : "s"}`);
+      } catch (err) {
+        console.error("Wine Cave: import failed", err);
+        flashBackupStatus("that file isn't a CANONS backup");
+      } finally {
+        importInput.value = "";
+      }
+    };
+    reader.readAsText(file);
   });
 
   // -------------------------------------------------------------------

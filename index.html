@@ -103,6 +103,16 @@
           </div>
           <p class="settings-label">theme</p>
           <div class="theme-list" id="theme-list"></div>
+
+          <p class="settings-label settings-label--spaced">backup</p>
+          <div class="backup-actions">
+            <button type="button" class="backup-btn" id="export-btn">export wines</button>
+            <label class="backup-btn" for="import-input">
+              import wines
+              <input type="file" id="import-input" accept="application/json,.json" hidden />
+            </label>
+          </div>
+          <p class="backup-status" id="backup-status"></p>
         </div>
       </div>
     </div>

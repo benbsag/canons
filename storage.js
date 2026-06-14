@@ -167,6 +167,19 @@
   }
 
   /**
+   * Replace the whole collection (used by Import / restore-from-backup). Every
+   * incoming record is passed through createWine so missing/older fields are
+   * filled with defaults and the shape stays consistent.
+   * @param {Partial<Wine>[]} wines
+   * @returns {Wine[]} the normalized, stored wines
+   */
+  function replaceAllWines(wines) {
+    const normalized = (Array.isArray(wines) ? wines : []).map((w) => createWine(w));
+    writeAllWines(normalized);
+    return normalized;
+  }
+
+  /**
    * Change a wine's ownership status, recording date_status_changed when
    * transitioning to Ausgetrunken (and clearing it otherwise).
    * @param {string} id
@@ -312,5 +325,6 @@
     setWineStatus,
     filterWines,
     seedIfEmpty,
+    replaceAllWines,
   };
 })();

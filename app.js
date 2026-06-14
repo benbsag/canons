@@ -93,7 +93,7 @@
     ".wine-envie-tag", ".stamp", ".empty-state", ".section-label",
     ".field label", ".add-btn-large", ".save-btn", ".research-trigger",
     ".action-link", ".status-option", ".research-help", ".research-label",
-    ".settings-title", ".settings-label", ".theme-name",
+    ".settings-title", ".settings-label",
   ].join(", ");
 
   function rainbowizeElement(el) {
@@ -1089,6 +1089,8 @@
       const option = document.createElement("button");
       option.type = "button";
       option.className = "theme-option";
+      // Each row previews itself: scope the row to its own theme.
+      option.dataset.theme = theme.id;
       if (theme.id === active) option.classList.add("is-active");
 
       const swatches = document.createElement("span");
@@ -1105,6 +1107,8 @@
       name.className = "theme-name";
       name.textContent = theme.label;
       option.appendChild(name);
+      // The Comic row previews its rainbow letters regardless of active theme.
+      if (theme.id === "comic") rainbowizeElement(name);
 
       if (theme.id === active) {
         const check = document.createElement("span");

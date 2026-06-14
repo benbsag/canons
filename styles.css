@@ -36,8 +36,21 @@
   --max-width: 640px;
 }
 
+/* Palette blocks use a bare [data-theme] selector (not html[…]) so they apply
+   both to <html> (the active theme) AND to any scoped element — e.g. each row
+   in the settings menu previews itself in its own theme. Layout/treatment
+   rules below stay html-scoped so previews don't reflow the whole app. */
+
+[data-theme="paper"] {
+  --paper: #f3ede1;
+  --ink: #1c1a17;
+  --muted: #857b6d;
+  --hairline: #d9cfbd;
+  --accent: #8e3b2f;
+}
+
 /* Example alternate theme — cool marble whites with a deep-green accent. */
-html[data-theme="marble"] {
+[data-theme="marble"] {
   --paper: #eef0ec;
   --ink: #20231f;
   --muted: #82867e;
@@ -50,12 +63,12 @@ html[data-theme="marble"] {
    themes share this typography and differ only in palette. Overriding the
    font variables flips every component to Space Grotesk in one move. */
 
-html[data-theme^="swiss"] {
+[data-theme^="swiss"] {
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
 }
 
-html[data-theme="swiss-white"] {
+[data-theme="swiss-white"] {
   --paper: #ffffff;
   --ink: #000000;
   --muted: #6f6f6f;
@@ -63,7 +76,7 @@ html[data-theme="swiss-white"] {
   --accent: #000000;
 }
 
-html[data-theme="swiss-black"] {
+[data-theme="swiss-black"] {
   --paper: #000000;
   --ink: #ffffff;
   --muted: #9a9a9a;
@@ -72,7 +85,7 @@ html[data-theme="swiss-black"] {
   color-scheme: dark;
 }
 
-html[data-theme="swiss-primary"] {
+[data-theme="swiss-primary"] {
   --paper: #ffffff;
   --ink: #000000;
   --muted: #6f6f6f;
@@ -83,7 +96,7 @@ html[data-theme="swiss-primary"] {
 /* ---- Comic — playful: Comic Relief, rainbow letters (set in JS), cream
    ground with a tiled wallpaper of little sloshing wine glasses. -------- */
 
-html[data-theme="comic"] {
+[data-theme="comic"] {
   --paper: #f3e9d2;
   --ink: #5a4a2f;
   --muted: #a4926c;
@@ -328,19 +341,23 @@ body {
   width: 100%;
   text-align: left;
   cursor: pointer;
-  background: transparent;
+  /* Each row carries its own data-theme, so these resolve to that theme's
+     palette + font — the row previews itself. */
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
   border: 1px solid var(--hairline);
   border-radius: 3px;
   padding: var(--space-3);
-  transition: border-color 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 
 .theme-option:hover {
-  border-color: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--muted);
 }
 
 .theme-option.is-active {
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .theme-swatches {
@@ -353,7 +370,7 @@ body {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  border: 1px solid rgba(28, 26, 23, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.45);
 }
 
 .theme-name {

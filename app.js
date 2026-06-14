@@ -323,18 +323,88 @@
   // Home: collection list
   // -------------------------------------------------------------------
 
-  function regionKey(wine) {
-    return (wine.tech_facts && wine.tech_facts.region) || "other";
+  // Map detailed sub-regions to a high-level region so the home list clusters
+  // neighbours (e.g. Anjou + Touraine -> Loire). The precise sub-region is
+  // retained on the wine entry itself. Keys are lowercased + accent-stripped.
+  const REGION_MACRO = {
+    // Loire
+    loire: "Loire", anjou: "Loire", saumur: "Loire", touraine: "Loire", muscadet: "Loire",
+    sancerre: "Loire", "pouilly-fume": "Loire", vouvray: "Loire", chinon: "Loire",
+    bourgueil: "Loire", montlouis: "Loire", savennieres: "Loire", "coteaux du layon": "Loire",
+    quincy: "Loire", reuilly: "Loire", cheverny: "Loire", jasnieres: "Loire", "saint-pourcain": "Loire",
+    // Burgundy
+    burgundy: "Burgundy", bourgogne: "Burgundy", chablis: "Burgundy", "cote de beaune": "Burgundy",
+    "cote de nuits": "Burgundy", "cote chalonnaise": "Burgundy", macon: "Burgundy", maconnais: "Burgundy",
+    beaune: "Burgundy", meursault: "Burgundy", "puligny-montrachet": "Burgundy",
+    "chassagne-montrachet": "Burgundy", pommard: "Burgundy", volnay: "Burgundy",
+    "nuits-saint-georges": "Burgundy", "gevrey-chambertin": "Burgundy", "chambolle-musigny": "Burgundy",
+    "vosne-romanee": "Burgundy", marsannay: "Burgundy", "saint-aubin": "Burgundy", "auxey-duresses": "Burgundy",
+    // Beaujolais
+    beaujolais: "Beaujolais", morgon: "Beaujolais", fleurie: "Beaujolais", brouilly: "Beaujolais",
+    "cote de brouilly": "Beaujolais", chenas: "Beaujolais", julienas: "Beaujolais",
+    chiroubles: "Beaujolais", regnie: "Beaujolais", "saint-amour": "Beaujolais", "moulin-a-vent": "Beaujolais",
+    // Jura
+    jura: "Jura", arbois: "Jura", pupillin: "Jura", "chateau-chalon": "Jura", etoile: "Jura",
+    "l'etoile": "Jura", "cotes du jura": "Jura",
+    // Savoie
+    savoie: "Savoie", apremont: "Savoie", abymes: "Savoie", chignin: "Savoie",
+    // Rhône
+    rhone: "Rhône", "cote-rotie": "Rhône", condrieu: "Rhône", hermitage: "Rhône",
+    "crozes-hermitage": "Rhône", cornas: "Rhône", "saint-joseph": "Rhône",
+    "chateauneuf-du-pape": "Rhône", gigondas: "Rhône", vacqueyras: "Rhône", ardeche: "Rhône",
+    // Other France
+    alsace: "Alsace", champagne: "Champagne", languedoc: "Languedoc", minervois: "Languedoc",
+    corbieres: "Languedoc", faugeres: "Languedoc", "pic saint-loup": "Languedoc",
+    "terrasses du larzac": "Languedoc", roussillon: "Roussillon", "cotes catalanes": "Roussillon",
+    banyuls: "Roussillon", maury: "Roussillon", provence: "Provence", bandol: "Provence",
+    cassis: "Provence", bordeaux: "Bordeaux", medoc: "Bordeaux", "saint-emilion": "Bordeaux",
+    pomerol: "Bordeaux", graves: "Bordeaux", "pessac-leognan": "Bordeaux", "sud-ouest": "Sud-Ouest",
+    gaillac: "Sud-Ouest", cahors: "Sud-Ouest", jurancon: "Sud-Ouest", madiran: "Sud-Ouest",
+    irouleguy: "Sud-Ouest", auvergne: "Auvergne", "cotes d'auvergne": "Auvergne",
+    // A few common non-French
+    piedmont: "Piedmont", piemonte: "Piedmont", langhe: "Piedmont", barolo: "Piedmont",
+    barbaresco: "Piedmont", tuscany: "Tuscany", toscana: "Tuscany", chianti: "Tuscany",
+    sicily: "Sicily", sicilia: "Sicily", etna: "Sicily", veneto: "Veneto", friuli: "Friuli",
+    "emilia-romagna": "Emilia-Romagna", "sierra foothills": "California", california: "California",
+    napa: "California", sonoma: "California", "willamette valley": "Oregon", oregon: "Oregon",
+    mosel: "Mosel", rheingau: "Rheingau", pfalz: "Pfalz", catalonia: "Catalonia",
+    catalunya: "Catalonia", penedes: "Catalonia", galicia: "Galicia", "ribeira sacra": "Galicia",
+  };
+
+  // If an exact match fails, a region containing one of these words still maps
+  // (e.g. "Hautes-Côtes du Jura" -> Jura).
+  const REGION_ANCHORS = [
+    ["jura", "Jura"], ["loire", "Loire"], ["savoie", "Savoie"], ["beaujolais", "Beaujolais"],
+    ["bourgogne", "Burgundy"], ["burgundy", "Burgundy"], ["rhone", "Rhône"], ["alsace", "Alsace"],
+    ["champagne", "Champagne"], ["languedoc", "Languedoc"], ["roussillon", "Roussillon"],
+    ["provence", "Provence"], ["bordeaux", "Bordeaux"], ["piemonte", "Piedmont"], ["piedmont", "Piedmont"],
+    ["toscana", "Tuscany"], ["tuscany", "Tuscany"], ["sicilia", "Sicily"], ["sicily", "Sicily"],
+    ["etna", "Sicily"], ["california", "California"], ["oregon", "Oregon"], ["mosel", "Mosel"],
+  ];
+
+  function normalizeRegion(s) {
+    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  }
+
+  function macroRegion(wine) {
+    const raw = (wine.tech_facts && wine.tech_facts.region) || "";
+    const key = normalizeRegion(raw);
+    if (!key) return "other";
+    if (REGION_MACRO[key]) return REGION_MACRO[key];
+    for (const [anchor, macro] of REGION_ANCHORS) {
+      if (key.includes(anchor)) return macro;
+    }
+    return raw; // fall back to whatever was entered, as its own group
   }
 
   /**
-   * Group wines by region, sort regions alphabetically, and sort wines
-   * within a region by producer. Matches the wine-list-page layout in §8.
+   * Group wines by high-level region, sort regions alphabetically, and sort
+   * wines within a region by producer.
    */
   function groupByRegion(wines) {
     const groups = new Map();
     for (const wine of wines) {
-      const key = regionKey(wine);
+      const key = macroRegion(wine);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(wine);
     }

@@ -1,6 +1,6 @@
 {
-  "name": "Wine Cave",
-  "short_name": "Wine Cave",
+  "name": "CANONS",
+  "short_name": "CANONS",
   "description": "A personal cellar catalogue for natural wine.",
   "start_url": "./index.html",
   "scope": "./",

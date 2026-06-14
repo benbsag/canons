@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f3ede1" />
     <meta name="color-scheme" content="light" />
-    <title>Wine Cave</title>
+    <title>CANONS</title>
 
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Wine Cave" />
+    <meta name="apple-mobile-web-app-title" content="CANONS" />
 
     <link
       href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap"
@@ -24,14 +24,19 @@
       <!-- ================= HOME ================= -->
       <section id="view-home" class="view">
         <header class="app-header">
-          <p class="brand">Wine Cave</p>
+          <p class="brand">CANONS</p>
 
           <div class="filter-line">
+            <svg class="filter-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2" />
+              <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
             <input
               id="filter-input"
               class="filter-input"
               type="search"
-              placeholder="jura, chenin, 2020 …"
+              placeholder=""
+              aria-label="Search the cellar"
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"
@@ -40,7 +45,7 @@
 
           <div class="actions">
             <button class="add-btn-large" type="button" id="add-wine-btn">
-              <span class="glyph">+</span> add a wine
+              <span class="glyph">+</span> add wine
             </button>
           </div>
         </header>

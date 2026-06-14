@@ -83,6 +83,17 @@ body {
   margin-bottom: var(--space-3);
 }
 
+.filter-icon {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 .filter-input {
   width: 100%;
   background: transparent;
@@ -92,7 +103,7 @@ body {
   font-family: var(--font-mono);
   font-size: 15px;
   letter-spacing: 0.02em;
-  padding: var(--space-2) var(--space-1);
+  padding: var(--space-2) var(--space-1) var(--space-2) 26px;
   outline: none;
   transition: border-color 0.15s ease;
 }

@@ -98,6 +98,8 @@
 
   function rainbowizeElement(el) {
     if (el.dataset.rainbowOrig !== undefined) return; // already done
+    // Leave finished (ausgetrunken) entries greyed — don't rainbow them.
+    if (el.closest && el.closest(".wine-entry--finished")) return;
     el.dataset.rainbowOrig = el.innerHTML;
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
     const textNodes = [];

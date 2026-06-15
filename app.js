@@ -833,10 +833,10 @@
     currentWine = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
     saveWine(currentWine);
 
-    detailSaveStatusEl.textContent = "saved";
-    setTimeout(() => {
-      detailSaveStatusEl.textContent = "";
-    }, 1500);
+    // Save & close: fold the changes in, then return to the cellar.
+    if (detailResearch) detailResearch.close();
+    showView("home");
+    render(filterInput.value);
   });
 
   // -------------------------------------------------------------------

@@ -163,6 +163,25 @@
   // 2. Parse the pasted response
   // -------------------------------------------------------------------------
 
+  // Repair the "smart" characters mobile keyboards (notably iOS Smart
+  // Punctuation) substitute into pasted text. These break JSON.parse even when
+  // the reply looked correct on screen — the usual cause of a paste that works
+  // on a Mac but fails on an iPhone. Only ASCII-equivalent substitutions are
+  // made, so a JSON object that was already valid is unaffected.
+  function normalizeSmartCharacters(s) {
+    return s
+      // Curly / typographic double quotes → straight "
+      .replace(/[“”„‟″‶«»]/g, '"')
+      // Curly / typographic single quotes, primes, backticks → straight '
+      .replace(/[‘’‚‛′‵´`]/g, "'")
+      // Dashes that get "smartened" (en/em/minus) → hyphen
+      .replace(/[‐‑‒–—−]/g, "-")
+      // Non-breaking / unusual spaces → normal space
+      .replace(/[  -   　]/g, " ")
+      // Zero-width characters and BOM → removed
+      .replace(/[​-‍﻿]/g, "");
+  }
+
   /** Pull the first {...} JSON object out of arbitrary pasted text. */
   function extractJsonObject(text) {
     if (typeof text !== "string") throw new Error("Nothing to read.");
@@ -181,7 +200,13 @@
     try {
       return JSON.parse(slice);
     } catch (err) {
-      throw new Error("The pasted text isn't valid JSON — copy the whole reply and try again.");
+      // Fallback: the text may carry smart quotes / unicode whitespace from a
+      // mobile keyboard. Repair those and try once more before giving up.
+      try {
+        return JSON.parse(normalizeSmartCharacters(slice));
+      } catch (err2) {
+        throw new Error("The pasted text isn't valid JSON — copy the whole reply and try again.");
+      }
     }
   }
 

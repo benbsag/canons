@@ -178,8 +178,11 @@
   let detailResearch = null;
   let addResearch = null;
 
-  // Ensure there's something to look at on first run.
-  seedIfEmpty();
+  const sync = window.WineCave.sync;
+
+  // Ensure there's something to look at on first run — but never seed sample
+  // wines onto a device that's linked to a shared cellar (they'd sync upward).
+  if (!sync.isLinked()) seedIfEmpty();
 
   // -------------------------------------------------------------------
   // Shared field-set: cloned into Add and Detail views from <template>
@@ -732,6 +735,7 @@
     }
 
     saveWine(wine);
+    sync.scheduleSync();
     if (addResearch) addResearch.close();
     showView("home");
     render(filterInput.value);
@@ -772,6 +776,7 @@
         currentWine = setWineStatus(currentWine.id, btn.dataset.status);
         setActiveStatus(detailRefs, currentWine.status);
         renderDetailMeta();
+        sync.scheduleSync();
       });
     }
 
@@ -783,6 +788,7 @@
       onApplied: (updated) => {
         currentWine = updated;
         saveWine(currentWine);
+        sync.scheduleSync();
         writeWineToFields(detailRefs, currentWine);
         renderDetailMeta();
         autoGrowAll(detailRefs);
@@ -811,6 +817,7 @@
     if (!confirm(`Remove "${label}" from the cellar? This can't be undone.`)) return;
 
     deleteWine(currentWine.id);
+    sync.scheduleSync();
     currentWine = null;
     showView("home");
     render(filterInput.value);
@@ -832,6 +839,7 @@
     // Status is controlled separately (one tap, persisted immediately above).
     currentWine = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
     saveWine(currentWine);
+    sync.scheduleSync();
 
     // Save & close: fold the changes in, then return to the cellar.
     if (detailResearch) detailResearch.close();
@@ -1128,6 +1136,7 @@
 
   function openSettings() {
     renderThemeList();
+    renderSync();
     settingsOverlay.hidden = false;
     applyRainbow(settingsOverlay);
   }
@@ -1203,6 +1212,7 @@
         }
 
         const saved = replaceAllWines(wines);
+        sync.scheduleSync();
         render(filterInput.value);
         flashBackupStatus(`imported ${saved.length} wine${saved.length === 1 ? "" : "s"}`);
       } catch (err) {
@@ -1216,9 +1226,146 @@
   });
 
   // -------------------------------------------------------------------
+  // Sync (optional, account-free) — settings UI + auto-sync triggers
+  // -------------------------------------------------------------------
+
+  const syncLinked = document.getElementById("sync-linked");
+  const syncSetup = document.getElementById("sync-setup");
+  const syncWhen = document.getElementById("sync-when");
+  const syncStatus = document.getElementById("sync-status");
+  const syncTokenInput = document.getElementById("sync-token-input");
+  const syncNewForm = document.getElementById("sync-new-form");
+  const syncUrlInput = document.getElementById("sync-url-input");
+  const syncKeyInput = document.getElementById("sync-key-input");
+  const syncCodeInput = document.getElementById("sync-code-input");
+
+  const syncJoinBtn = document.getElementById("sync-join-btn");
+  const syncNewBtn = document.getElementById("sync-new-btn");
+  const syncGenBtn = document.getElementById("sync-gen-btn");
+  const syncCreateBtn = document.getElementById("sync-create-btn");
+  const syncNowBtn = document.getElementById("sync-now-btn");
+  const syncCopyBtn = document.getElementById("sync-copy-btn");
+  const syncUnlinkBtn = document.getElementById("sync-unlink-btn");
+
+  function flashSyncStatus(text, persist) {
+    syncStatus.textContent = text;
+    if (!persist) {
+      setTimeout(() => {
+        if (syncStatus.textContent === text) syncStatus.textContent = "";
+      }, 3500);
+    }
+  }
+
+  function renderSync() {
+    const linked = sync.isLinked();
+    syncLinked.hidden = !linked;
+    syncSetup.hidden = linked;
+    if (linked) {
+      const cfg = sync.getConfig();
+      syncWhen.textContent = cfg && cfg.lastSync ? `last synced ${formatDate(cfg.lastSync)}` : "";
+    } else {
+      syncNewForm.hidden = true;
+      syncTokenInput.value = "";
+    }
+  }
+
+  // Re-render the cellar when a background sync pulls in changes from another
+  // device. Only disrupts the home list; an open editor is left alone.
+  sync.setOnChange(() => render(filterInput.value));
+
+  syncNewBtn.addEventListener("click", () => {
+    syncNewForm.hidden = !syncNewForm.hidden;
+    if (!syncNewForm.hidden && !syncCodeInput.value) syncCodeInput.value = sync.randomCode();
+  });
+
+  syncGenBtn.addEventListener("click", () => {
+    syncCodeInput.value = sync.randomCode();
+  });
+
+  // Join an existing cellar from a pasted sync code.
+  syncJoinBtn.addEventListener("click", async () => {
+    let cfg;
+    try {
+      cfg = sync.parseToken(syncTokenInput.value);
+    } catch (err) {
+      flashSyncStatus(err.message);
+      return;
+    }
+    flashSyncStatus("linking…", true);
+    try {
+      const remote = await sync.preview(cfg);
+      const remoteCount = remote ? (remote.wines || []).length : 0;
+      const localCount = getAllWines().length;
+      let joinReplace = true;
+      if (remoteCount && localCount) {
+        joinReplace = confirm(
+          `This cellar has ${remoteCount} wine${remoteCount === 1 ? "" : "s"}.\n\n` +
+            `OK: use the shared cellar (replaces this device's ${localCount}).\n` +
+            `Cancel: merge this device's wines into it.`
+        );
+      }
+      await sync.link(cfg, joinReplace);
+      renderSync();
+      render(filterInput.value);
+      flashSyncStatus("linked — your devices now share this cellar");
+    } catch (err) {
+      flashSyncStatus(err.message || "couldn't link");
+    }
+  });
+
+  // Set up a brand-new shared cellar from Supabase details.
+  syncCreateBtn.addEventListener("click", async () => {
+    const url = syncUrlInput.value.trim();
+    const key = syncKeyInput.value.trim();
+    const code = syncCodeInput.value.trim();
+    if (!url || !key || !code) {
+      flashSyncStatus("fill in the URL, key and code first");
+      return;
+    }
+    flashSyncStatus("linking…", true);
+    try {
+      // New cellar from this device: push local wines up (no replace).
+      await sync.link({ url, key, code }, false);
+      renderSync();
+      flashSyncStatus("linked — copy the sync code onto your other devices");
+    } catch (err) {
+      flashSyncStatus(err.message || "couldn't link");
+    }
+  });
+
+  syncNowBtn.addEventListener("click", async () => {
+    flashSyncStatus("syncing…", true);
+    const result = await sync.runSync();
+    renderSync();
+    flashSyncStatus(result.error ? (result.error.message || "sync failed") : "synced");
+  });
+
+  syncCopyBtn.addEventListener("click", () => {
+    const token = sync.makeToken();
+    if (!token) return;
+    copyText(token).then((ok) => {
+      flashSyncStatus(ok ? "sync code copied — paste it on your other device" : "couldn't copy");
+    });
+  });
+
+  syncUnlinkBtn.addEventListener("click", () => {
+    if (!confirm("Unlink this device? Your wines stay on this device but stop syncing.")) return;
+    sync.unlink();
+    renderSync();
+    flashSyncStatus("unlinked");
+  });
+
+  // Pull in others' changes when the app regains focus (e.g. switching back to
+  // it on the phone), and once on boot.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) sync.scheduleSync(300);
+  });
+
+  // -------------------------------------------------------------------
   // Boot
   // -------------------------------------------------------------------
 
+  if (sync.isLinked()) sync.scheduleSync(300);
   render();
   applyRainbow(document); // rainbow chrome on load if Comic is the saved theme
 

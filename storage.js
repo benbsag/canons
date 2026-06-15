@@ -12,6 +12,12 @@
 
 (function () {
   const STORAGE_KEY = "wineCave:wines:v1";
+  // Deletions are remembered as tombstones { id: ISO-timestamp } so a delete on
+  // one device can win over a stale copy on another when syncing.
+  const TOMBSTONE_KEY = "wineCave:tombstones:v1";
+  // Tombstones older than this are pruned so the list can't grow forever. A
+  // device offline longer than this could in theory resurrect a deleted wine.
+  const TOMBSTONE_TTL_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
 
   // Stable internal keys for ownership status. Display strings live in
   // STATUS_LABELS so the wording can change without touching data or logic.
@@ -82,6 +88,7 @@
     const now = new Date().toISOString();
     return {
       id: partial.id || generateId(),
+      updated_at: partial.updated_at || now,
       producer: partial.producer ?? "",
       cuvee: partial.cuvee ?? "",
       vintage: partial.vintage ?? null,
@@ -150,6 +157,10 @@
    * @returns {Wine}
    */
   function saveWine(wine) {
+    // Stamp the edit time so sync can tell which device's copy is newest. This
+    // is the user-edit path; the sync layer writes via applyCellar() instead,
+    // which preserves timestamps so merging stays stable.
+    wine.updated_at = new Date().toISOString();
     const wines = getAllWines();
     const idx = wines.findIndex((w) => w.id === wine.id);
     if (idx === -1) {
@@ -161,9 +172,102 @@
     return wine;
   }
 
-  /** Remove a wine by id. */
+  /** Remove a wine by id, leaving a tombstone so the delete can sync. */
   function deleteWine(id) {
     writeAllWines(getAllWines().filter((w) => w.id !== id));
+    const tombstones = getTombstones();
+    tombstones[id] = new Date().toISOString();
+    writeTombstones(tombstones);
+  }
+
+  // -------------------------------------------------------------------------
+  // Tombstones + whole-cellar helpers (used by the sync layer)
+  // -------------------------------------------------------------------------
+
+  function getTombstones() {
+    try {
+      const raw = localStorage.getItem(TOMBSTONE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeTombstones(tombstones) {
+    localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(pruneTombstones(tombstones)));
+  }
+
+  function pruneTombstones(tombstones) {
+    const cutoff = Date.now() - TOMBSTONE_TTL_MS;
+    const out = {};
+    for (const [id, iso] of Object.entries(tombstones || {})) {
+      if (parseTime(iso) >= cutoff) out[id] = iso;
+    }
+    return out;
+  }
+
+  /** The whole local cellar as one document, for syncing. */
+  function getCellar() {
+    return { wines: getAllWines(), tombstones: getTombstones() };
+  }
+
+  /** Replace the local cellar verbatim (no re-stamping) — used by sync. */
+  function applyCellar(cellar) {
+    const wines = Array.isArray(cellar && cellar.wines) ? cellar.wines : [];
+    const tombstones = (cellar && cellar.tombstones) || {};
+    writeAllWines(wines);
+    writeTombstones(tombstones);
+    return getCellar();
+  }
+
+  function parseTime(iso) {
+    const t = Date.parse(iso);
+    return isNaN(t) ? 0 : t;
+  }
+
+  // A wine's effective modified time: its updated_at, falling back to when it
+  // was added (older records pre-date the updated_at field).
+  function wineTime(wine) {
+    return parseTime(wine && wine.updated_at) || parseTime(wine && wine.date_added);
+  }
+
+  /**
+   * Merge two cellars into one, convergently (order-independent):
+   *  - For a wine present on both sides, the copy with the newer edit time wins.
+   *  - A deletion (tombstone) beats a wine only if the delete is newer than the
+   *    wine's last edit; a later edit "resurrects" the wine and clears the
+   *    tombstone.
+   * Pure: returns { wines, tombstones } without touching storage.
+   */
+  function mergeCellars(a, b) {
+    a = a || { wines: [], tombstones: {} };
+    b = b || { wines: [], tombstones: {} };
+
+    const winesById = new Map();
+    for (const w of a.wines || []) winesById.set(w.id, w);
+    for (const w of b.wines || []) {
+      const cur = winesById.get(w.id);
+      if (!cur || wineTime(w) >= wineTime(cur)) winesById.set(w.id, w);
+    }
+
+    const tombstones = {};
+    for (const src of [a.tombstones || {}, b.tombstones || {}]) {
+      for (const [id, iso] of Object.entries(src)) {
+        if (!tombstones[id] || parseTime(iso) > parseTime(tombstones[id])) tombstones[id] = iso;
+      }
+    }
+
+    const wines = [];
+    for (const [id, w] of winesById) {
+      const tomb = tombstones[id] ? parseTime(tombstones[id]) : 0;
+      if (tomb > wineTime(w)) continue; // deletion wins → drop the wine
+      wines.push(w); // wine wins…
+      delete tombstones[id]; // …so its tombstone (if any) is obsolete
+    }
+
+    return { wines, tombstones: pruneTombstones(tombstones) };
   }
 
   /**
@@ -326,5 +430,9 @@
     filterWines,
     seedIfEmpty,
     replaceAllWines,
+    getTombstones,
+    getCellar,
+    applyCellar,
+    mergeCellars,
   };
 })();

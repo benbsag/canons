@@ -446,6 +446,90 @@ html[data-theme^="swiss"] .brand-row .brand {
   min-height: 1em;
 }
 
+/* --- Sync --- */
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.backup-btn--quiet {
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+
+.sync-help,
+.sync-info {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+}
+
+.sync-info strong,
+.sync-help strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.sync-when {
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0.08em;
+}
+
+.sync-token-input,
+.sync-field {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: var(--space-3);
+  resize: vertical;
+}
+
+.sync-token-input:focus,
+.sync-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.sync-new-form {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.sync-field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.sync-code-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.sync-code-row .sync-field {
+  flex: 1;
+}
+
+.sync-code-row .backup-btn {
+  flex: 0 0 auto;
+}
+
 .filter-line {
   position: relative;
   margin-bottom: var(--space-3);

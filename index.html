@@ -96,75 +96,102 @@
 
       <!-- ================= SETTINGS ================= -->
       <div class="settings-overlay" id="settings-overlay" hidden>
-        <div class="settings-sheet" role="dialog" aria-label="Appearance">
-          <div class="settings-head">
-            <p class="settings-title">appearance</p>
-            <button class="action-link action-link--quiet" type="button" id="settings-close">close</button>
-          </div>
-          <p class="settings-label">theme</p>
-          <div class="theme-list" id="theme-list"></div>
+        <div class="settings-sheet" role="dialog" aria-label="Settings">
 
-          <p class="settings-label settings-label--spaced">sync</p>
-
-          <!-- Linked state -->
-          <div class="sync-linked" id="sync-linked" hidden>
-            <p class="sync-info">
-              Synced across devices.
-              <span class="sync-when" id="sync-when"></span>
-            </p>
-            <div class="sync-actions">
-              <button type="button" class="backup-btn" id="sync-now-btn">sync now</button>
-              <button type="button" class="backup-btn" id="sync-copy-btn">copy sync code</button>
-              <button type="button" class="backup-btn backup-btn--quiet" id="sync-unlink-btn">unlink</button>
+          <!-- ---- Main page: appearance + a door into advanced ---- -->
+          <div class="settings-page" id="settings-page-main">
+            <div class="settings-head">
+              <p class="settings-title">appearance</p>
+              <button class="action-link action-link--quiet" type="button" id="settings-close">close</button>
             </div>
+            <p class="settings-label">theme</p>
+            <div class="theme-list" id="theme-list"></div>
+
+            <button type="button" class="settings-row-btn" id="settings-advanced-btn">
+              <span>data &amp; sync</span>
+              <span class="settings-row-chevron" aria-hidden="true">›</span>
+            </button>
           </div>
 
-          <!-- Unlinked state -->
-          <div class="sync-setup" id="sync-setup">
-            <p class="sync-help">
-              Sync your cellar between devices with no account — paste a
-              <strong>sync code</strong> from another device, or set up a new
-              shared cellar.
-            </p>
-            <textarea
-              class="sync-token-input"
-              id="sync-token-input"
-              rows="2"
-              placeholder="paste a sync code here…"
-              autocomplete="off"
-              spellcheck="false"
-            ></textarea>
-            <div class="sync-actions">
-              <button type="button" class="backup-btn" id="sync-join-btn">link this device</button>
-              <button type="button" class="backup-btn backup-btn--quiet" id="sync-new-btn">set up new cellar</button>
+          <!-- ---- Advanced page: sync + backup ---- -->
+          <div class="settings-page" id="settings-page-advanced" hidden>
+            <div class="settings-head">
+              <button class="action-link" type="button" id="settings-back-btn">‹ back</button>
+              <p class="settings-title">data &amp; sync</p>
             </div>
 
-            <!-- New-cellar form (Supabase details), revealed by "set up new cellar" -->
-            <div class="sync-new-form" id="sync-new-form" hidden>
-              <label class="sync-field-label" for="sync-url-input">Supabase project URL</label>
-              <input type="url" class="sync-field" id="sync-url-input" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false" />
-              <label class="sync-field-label" for="sync-key-input">Supabase anon key</label>
-              <textarea class="sync-field" id="sync-key-input" rows="2" placeholder="eyJ…" autocomplete="off" spellcheck="false"></textarea>
-              <label class="sync-field-label" for="sync-code-input">cellar code (the shared secret)</label>
-              <div class="sync-code-row">
-                <input type="text" class="sync-field" id="sync-code-input" placeholder="e.g. abcd-efgh-ijkl" autocomplete="off" spellcheck="false" />
-                <button type="button" class="backup-btn" id="sync-gen-btn">generate</button>
+            <p class="settings-label">sync</p>
+
+            <!-- Linked state -->
+            <div class="sync-linked" id="sync-linked" hidden>
+              <p class="sync-info">
+                Synced across devices.
+                <span class="sync-when" id="sync-when"></span>
+              </p>
+              <div class="sync-actions">
+                <button type="button" class="backup-btn" id="sync-now-btn">sync now</button>
+                <button type="button" class="backup-btn" id="sync-copy-btn">copy sync code</button>
+                <button type="button" class="backup-btn backup-btn--quiet" id="sync-unlink-btn">unlink</button>
               </div>
-              <button type="button" class="backup-btn" id="sync-create-btn">create &amp; link</button>
             </div>
-          </div>
 
-          <p class="backup-status" id="sync-status"></p>
+            <!-- Unlinked state -->
+            <div class="sync-setup" id="sync-setup">
+              <p class="sync-help">
+                Sync your cellar between devices with no account — paste a
+                <strong>sync code</strong> from another device, or set up a new
+                shared cellar.
+              </p>
+              <textarea
+                class="sync-token-input"
+                id="sync-token-input"
+                rows="2"
+                placeholder="paste a sync code here…"
+                autocomplete="off"
+                spellcheck="false"
+              ></textarea>
+              <div class="sync-actions">
+                <button type="button" class="backup-btn" id="sync-join-btn">link this device</button>
+                <button type="button" class="backup-btn backup-btn--quiet" id="sync-new-btn">set up new cellar</button>
+              </div>
 
-          <p class="settings-label settings-label--spaced">backup</p>
-          <div class="backup-actions">
-            <button type="button" class="backup-btn" id="export-btn">export wines</button>
-            <label class="backup-btn" for="import-input">
-              import wines
-              <input type="file" id="import-input" accept="application/json,.json" hidden />
-            </label>
+              <!-- New-cellar form (Supabase details), revealed by "set up new cellar" -->
+              <div class="sync-new-form" id="sync-new-form" hidden>
+                <label class="sync-field-label" for="sync-url-input">Supabase project URL</label>
+                <input type="url" class="sync-field" id="sync-url-input" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false" />
+                <label class="sync-field-label" for="sync-key-input">Supabase anon key</label>
+                <textarea class="sync-field" id="sync-key-input" rows="2" placeholder="eyJ…" autocomplete="off" spellcheck="false"></textarea>
+                <label class="sync-field-label" for="sync-code-input">cellar code (the shared secret)</label>
+                <div class="sync-code-row">
+                  <input type="text" class="sync-field" id="sync-code-input" placeholder="e.g. abcd-efgh-ijkl" autocomplete="off" spellcheck="false" />
+                  <button type="button" class="backup-btn" id="sync-gen-btn">generate</button>
+                </div>
+                <button type="button" class="backup-btn" id="sync-create-btn">create &amp; link</button>
+              </div>
+            </div>
+
+            <!-- Inline confirm (replaces blocking confirm() dialogs, which are
+                 unreliable inside an installed PWA) -->
+            <div class="sync-confirm" id="sync-confirm" hidden>
+              <p class="sync-confirm-msg" id="sync-confirm-msg"></p>
+              <div class="sync-actions">
+                <button type="button" class="backup-btn" id="sync-confirm-yes">ok</button>
+                <button type="button" class="backup-btn backup-btn--quiet" id="sync-confirm-no">cancel</button>
+              </div>
+            </div>
+
+            <p class="backup-status" id="sync-status"></p>
+
+            <p class="settings-label settings-label--spaced">backup</p>
+            <div class="backup-actions">
+              <button type="button" class="backup-btn" id="export-btn">export wines</button>
+              <label class="backup-btn" for="import-input">
+                import wines
+                <input type="file" id="import-input" accept="application/json,.json" hidden />
+              </label>
+            </div>
+            <p class="backup-status" id="backup-status"></p>
           </div>
-          <p class="backup-status" id="backup-status"></p>
         </div>
       </div>
     </div>

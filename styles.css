@@ -530,6 +530,54 @@ html[data-theme^="swiss"] .brand-row .brand {
   flex: 0 0 auto;
 }
 
+/* Settings sub-pages + the row that opens "data & sync" */
+.settings-page[hidden] {
+  display: none;
+}
+
+.settings-row-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: var(--space-5);
+  padding: 14px 4px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--ink);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.settings-row-btn:hover {
+  color: var(--accent);
+}
+
+.settings-row-chevron {
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.sync-confirm {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+}
+
+.sync-confirm-msg {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0 0 var(--space-3);
+}
+
 .filter-line {
   position: relative;
   margin-bottom: var(--space-3);

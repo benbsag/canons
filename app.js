@@ -1137,12 +1137,15 @@
   function openSettings() {
     renderThemeList();
     renderSync();
+    showSettingsPage("main");
     settingsOverlay.hidden = false;
     applyRainbow(settingsOverlay);
   }
 
   function closeSettings() {
+    resolveInline(false); // cancel any open prompt
     settingsOverlay.hidden = true;
+    showSettingsPage("main");
   }
 
   settingsBtn.addEventListener("click", openSettings);
@@ -1229,10 +1232,56 @@
   // Sync (optional, account-free) — settings UI + auto-sync triggers
   // -------------------------------------------------------------------
 
+  const settingsPageMain = document.getElementById("settings-page-main");
+  const settingsPageAdvanced = document.getElementById("settings-page-advanced");
+  const settingsAdvancedBtn = document.getElementById("settings-advanced-btn");
+  const settingsBackBtn = document.getElementById("settings-back-btn");
+
   const syncLinked = document.getElementById("sync-linked");
   const syncSetup = document.getElementById("sync-setup");
   const syncWhen = document.getElementById("sync-when");
   const syncStatus = document.getElementById("sync-status");
+  const syncConfirm = document.getElementById("sync-confirm");
+  const syncConfirmMsg = document.getElementById("sync-confirm-msg");
+  const syncConfirmYes = document.getElementById("sync-confirm-yes");
+  const syncConfirmNo = document.getElementById("sync-confirm-no");
+
+  // Show one of the two settings pages (main = appearance, advanced = data/sync).
+  function showSettingsPage(name) {
+    settingsPageMain.hidden = name !== "main";
+    settingsPageAdvanced.hidden = name !== "advanced";
+  }
+
+  settingsAdvancedBtn.addEventListener("click", () => {
+    renderSync();
+    showSettingsPage("advanced");
+  });
+  settingsBackBtn.addEventListener("click", () => {
+    resolveInline(false); // cancel any open prompt before leaving
+    showSettingsPage("main");
+  });
+
+  // Inline, non-blocking confirm — native confirm()/alert() are unreliable in
+  // an installed PWA (they can freeze the page), so we ask in the panel itself.
+  // Resolves true/false; only one prompt is live at a time.
+  let confirmResolver = null;
+  function askInline(message, yesLabel = "ok", noLabel = "cancel") {
+    syncConfirmMsg.textContent = message;
+    syncConfirmYes.textContent = yesLabel;
+    syncConfirmNo.textContent = noLabel;
+    syncConfirm.hidden = false;
+    return new Promise((resolve) => {
+      confirmResolver = resolve;
+    });
+  }
+  function resolveInline(value) {
+    syncConfirm.hidden = true;
+    const r = confirmResolver;
+    confirmResolver = null;
+    if (r) r(value);
+  }
+  syncConfirmYes.addEventListener("click", () => resolveInline(true));
+  syncConfirmNo.addEventListener("click", () => resolveInline(false));
   const syncTokenInput = document.getElementById("sync-token-input");
   const syncNewForm = document.getElementById("sync-new-form");
   const syncUrlInput = document.getElementById("sync-url-input");
@@ -1282,63 +1331,83 @@
     syncCodeInput.value = sync.randomCode();
   });
 
+  // Disable a button for the duration of an async action so it can't be tapped
+  // twice or left in a half-finished state — errors are surfaced, never swallow
+  // the UI. (Combined with inline confirms, this is what keeps the panel from
+  // getting "stuck" mid-sync.)
+  function runBusy(btn, fn) {
+    return async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try {
+        await fn();
+      } catch (err) {
+        flashSyncStatus((err && err.message) || "something went wrong");
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  }
+
   // Join an existing cellar from a pasted sync code.
-  syncJoinBtn.addEventListener("click", async () => {
-    let cfg;
-    try {
-      cfg = sync.parseToken(syncTokenInput.value);
-    } catch (err) {
-      flashSyncStatus(err.message);
-      return;
-    }
-    flashSyncStatus("linking…", true);
-    try {
+  syncJoinBtn.addEventListener(
+    "click",
+    runBusy(syncJoinBtn, async () => {
+      let cfg;
+      try {
+        cfg = sync.parseToken(syncTokenInput.value);
+      } catch (err) {
+        flashSyncStatus(err.message);
+        return;
+      }
+      flashSyncStatus("linking…", true);
       const remote = await sync.preview(cfg);
       const remoteCount = remote ? (remote.wines || []).length : 0;
       const localCount = getAllWines().length;
       let joinReplace = true;
       if (remoteCount && localCount) {
-        joinReplace = confirm(
-          `This cellar has ${remoteCount} wine${remoteCount === 1 ? "" : "s"}.\n\n` +
-            `OK: use the shared cellar (replaces this device's ${localCount}).\n` +
-            `Cancel: merge this device's wines into it.`
+        joinReplace = await askInline(
+          `This cellar already has ${remoteCount} wine${remoteCount === 1 ? "" : "s"}. ` +
+            `Use it on this device, or merge your ${localCount} into it?`,
+          "use shared",
+          "merge both"
         );
       }
       await sync.link(cfg, joinReplace);
       renderSync();
       render(filterInput.value);
       flashSyncStatus("linked — your devices now share this cellar");
-    } catch (err) {
-      flashSyncStatus(err.message || "couldn't link");
-    }
-  });
+    })
+  );
 
   // Set up a brand-new shared cellar from Supabase details.
-  syncCreateBtn.addEventListener("click", async () => {
-    const url = syncUrlInput.value.trim();
-    const key = syncKeyInput.value.trim();
-    const code = syncCodeInput.value.trim();
-    if (!url || !key || !code) {
-      flashSyncStatus("fill in the URL, key and code first");
-      return;
-    }
-    flashSyncStatus("linking…", true);
-    try {
+  syncCreateBtn.addEventListener(
+    "click",
+    runBusy(syncCreateBtn, async () => {
+      const url = syncUrlInput.value.trim();
+      const key = syncKeyInput.value.trim();
+      const code = syncCodeInput.value.trim();
+      if (!url || !key || !code) {
+        flashSyncStatus("fill in the URL, key and code first");
+        return;
+      }
+      flashSyncStatus("linking…", true);
       // New cellar from this device: push local wines up (no replace).
       await sync.link({ url, key, code }, false);
       renderSync();
       flashSyncStatus("linked — copy the sync code onto your other devices");
-    } catch (err) {
-      flashSyncStatus(err.message || "couldn't link");
-    }
-  });
+    })
+  );
 
-  syncNowBtn.addEventListener("click", async () => {
-    flashSyncStatus("syncing…", true);
-    const result = await sync.runSync();
-    renderSync();
-    flashSyncStatus(result.error ? (result.error.message || "sync failed") : "synced");
-  });
+  syncNowBtn.addEventListener(
+    "click",
+    runBusy(syncNowBtn, async () => {
+      flashSyncStatus("syncing…", true);
+      const result = await sync.runSync();
+      renderSync();
+      flashSyncStatus(result.error ? (result.error.message || "sync failed") : "synced");
+    })
+  );
 
   syncCopyBtn.addEventListener("click", () => {
     const token = sync.makeToken();
@@ -1348,8 +1417,13 @@
     });
   });
 
-  syncUnlinkBtn.addEventListener("click", () => {
-    if (!confirm("Unlink this device? Your wines stay on this device but stop syncing.")) return;
+  syncUnlinkBtn.addEventListener("click", async () => {
+    const ok = await askInline(
+      "Unlink this device? Your wines stay here but stop syncing.",
+      "unlink",
+      "cancel"
+    );
+    if (!ok) return;
     sync.unlink();
     renderSync();
     flashSyncStatus("unlinked");

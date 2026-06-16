@@ -942,7 +942,14 @@ html[data-theme^="swiss"] .brand-row .brand {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
+  /* Stay fixed at the top while the form scrolls, so "back" is always reachable. */
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--paper);
+  padding: var(--space-3) 0;
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .view-header .brand {
@@ -1328,48 +1335,73 @@ textarea.autogrow {
   background: rgba(28, 26, 23, 0.02);
 }
 
-/* Mode bar — current mode (filled pill) + a switch button. */
-.research-modebar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+/* Chooser — pick AI (paid) or free (manual) each time the panel opens. */
+.research-chooser {
+  text-align: center;
 }
 
-.research-mode-label {
+.research-chooser-q {
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: lowercase;
-  color: var(--paper);
-  background: var(--accent);
-  padding: 6px 13px;
-  border-radius: 999px;
-  white-space: nowrap;
+  color: var(--ink);
+  margin: 0 0 var(--space-3);
 }
 
-.research-modebar .research-mode-switch {
+.research-chooser-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.research-choose-ai,
+.research-choose-free {
+  flex: 1;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: lowercase;
+  border-radius: 3px;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.research-choose-ai {
+  color: var(--paper);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.research-choose-ai:hover {
+  opacity: 0.88;
+}
+
+.research-choose-free {
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 6px 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  opacity: 1;
-  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.research-modebar .research-mode-switch:hover {
+.research-choose-free:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.research-chooser-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: var(--space-3) 0 0;
+}
+
+.research-chooser-note strong {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 /* Working / loading state */

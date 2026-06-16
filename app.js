@@ -47,24 +47,6 @@
   ];
   const DEFAULT_THEME = "paper";
   const THEME_KEY = "canons:theme:v1";
-  const RESEARCH_MODE_KEY = "canons:researchMode:v1";
-
-  // Research mode: "auto" runs a background API call (costs a few cents/wine);
-  // "manual" uses the free copy/paste flow — kept for demos and offline use.
-  function getResearchMode() {
-    try {
-      return localStorage.getItem(RESEARCH_MODE_KEY) === "manual" ? "manual" : "auto";
-    } catch (err) {
-      return "auto";
-    }
-  }
-  function setResearchMode(mode) {
-    try {
-      localStorage.setItem(RESEARCH_MODE_KEY, mode === "manual" ? "manual" : "auto");
-    } catch (err) {
-      /* private mode — just won't persist */
-    }
-  }
 
   // Swiss Primary palette — each wine entry gets one, picked deterministically
   // from its id so the colour is stable across re-renders (no flicker while
@@ -1006,8 +988,9 @@
     const panel = researchPanelTemplate.content.firstElementChild.cloneNode(true);
     mount.appendChild(panel);
 
-    const modeLabel = panel.querySelector(".research-mode-label");
-    const modeSwitch = panel.querySelector(".research-mode-switch");
+    const chooserView = panel.querySelector(".research-chooser");
+    const chooseAi = panel.querySelector(".research-choose-ai");
+    const chooseFree = panel.querySelector(".research-choose-free");
 
     const loadingView = panel.querySelector(".research-loading");
     const loadingCancel = panel.querySelector(".research-loading-cancel");
@@ -1034,8 +1017,9 @@
     let pending = null;
     let inFlight = null; // AbortController for an active API call
 
-    // Show exactly one of the panel's views (the mode bar always stays).
+    // Show exactly one of the panel's views.
     function showView(name) {
+      chooserView.hidden = name !== "chooser";
       loadingView.hidden = name !== "loading";
       failView.hidden = name !== "fail";
       inputView.hidden = name !== "input";
@@ -1049,22 +1033,18 @@
       }
     }
 
-    function renderModeBar() {
-      const mode = getResearchMode();
-      if (mode === "manual") {
-        modeLabel.textContent = "manual research · free";
-        modeSwitch.textContent = "switch to automatic";
-      } else {
-        modeLabel.textContent = "automatic research · ai";
-        modeSwitch.textContent = "switch to manual (free)";
-      }
+    // Abort any running call and return to the choice screen.
+    function toChooser() {
+      abortInFlight();
+      errorEl.hidden = true;
+      showView("chooser");
     }
 
     function close() {
       abortInFlight();
       pending = null;
       panel.hidden = true;
-      showView("input");
+      showView("chooser");
       paste.value = "";
       errorEl.hidden = true;
       errorEl.textContent = "";
@@ -1095,7 +1075,7 @@
       }
       if (!researchApi.isConfigured()) {
         showFailure(
-          "Automated research isn't set up yet — link sync (it shares your Supabase project), or switch to manual research below.",
+          "AI research isn't set up yet — link sync (it shares your Supabase project), or use free search instead.",
         );
         return;
       }
@@ -1115,7 +1095,7 @@
             parsed = parseResearchResponse(result.text);
           } catch (err) {
             showFailure(
-              "The research came back but couldn't be read as data. Try again, or use manual research.",
+              "The research came back but couldn't be read as data. Try again, or use free search.",
             );
             return;
           }
@@ -1128,57 +1108,39 @@
         });
     }
 
-    // Open the manual copy/paste flow (free). `persist` records it as the new
-    // default; the inline "do it manually" links pass false (one-off use).
-    function startManual(persist) {
+    // Show the free copy/paste flow.
+    function showManual() {
       abortInFlight();
-      if (persist) {
-        setResearchMode("manual");
-        renderModeBar();
-      }
       errorEl.hidden = true;
       showView("input");
     }
 
-    // What happens when the panel opens (or the mode is switched to auto).
-    function startForMode() {
-      if (getResearchMode() === "manual") {
-        showView("input");
-      } else {
-        startAuto();
-      }
-    }
-
+    // Opening the panel always lands on the chooser — no auto-spend.
     trigger.addEventListener("click", () => {
       if (!isReady()) return;
       if (panel.hidden) {
         close();
         panel.hidden = false;
-        renderModeBar();
-        startForMode();
+        showView("chooser");
       } else {
         close();
       }
     });
 
-    modeSwitch.addEventListener("click", () => {
-      const next = getResearchMode() === "manual" ? "auto" : "manual";
-      setResearchMode(next);
-      renderModeBar();
-      errorEl.hidden = true;
-      startForMode();
-    });
+    // Chooser: pick AI (paid) or free (manual).
+    chooseAi.addEventListener("click", startAuto);
+    chooseFree.addEventListener("click", showManual);
 
     // Loading state controls.
-    loadingCancel.addEventListener("click", close);
+    loadingCancel.addEventListener("click", toChooser);
 
     // Failure state controls.
-    failCancel.addEventListener("click", close);
-    failManual.addEventListener("click", () => startManual(false));
+    failCancel.addEventListener("click", toChooser);
+    failManual.addEventListener("click", showManual);
     retryBtn.addEventListener("click", startAuto);
 
     // Manual flow.
-    cancelBtn.addEventListener("click", close);
+    cancelBtn.addEventListener("click", toChooser);
 
     copyBtn.addEventListener("click", () => {
       if (!isReady()) return;
@@ -1212,15 +1174,7 @@
       toReview(parsed);
     });
 
-    backBtn.addEventListener("click", () => {
-      // Return to wherever the result came from: manual paste, or a fresh
-      // automated attempt.
-      if (getResearchMode() === "manual") {
-        showView("input");
-      } else {
-        startAuto();
-      }
-    });
+    backBtn.addEventListener("click", toChooser);
 
     applyBtn.addEventListener("click", () => {
       if (!pending || !isReady()) return;

@@ -265,7 +265,7 @@
 
       <div class="research-launch">
         <button type="button" class="research-trigger">
-          <span class="glyph">⌕</span> research this wine
+          <span class="glyph">⌕</span> get wine info
         </button>
         <div class="research-mount"></div>
       </div>
@@ -340,9 +340,18 @@
     <!-- Research panel (cloned into the Add and Detail views via JS) -->
     <template id="research-panel-template">
       <section class="research-panel" hidden>
-        <div class="research-modebar">
-          <span class="research-mode-label"></span>
-          <button type="button" class="action-link action-link--quiet research-mode-switch"></button>
+        <!-- Chooser: pick how to look the wine up (shown first each time) -->
+        <div class="research-chooser">
+          <p class="research-chooser-q">how would you like to look this up?</p>
+          <div class="research-chooser-actions">
+            <button type="button" class="research-choose-ai">AI research</button>
+            <button type="button" class="research-choose-free">free search</button>
+          </div>
+          <p class="research-chooser-note">
+            <strong>AI</strong> fills the facts for you from the web (costs a few
+            cents per wine). <strong>Free</strong> gives you a prompt to paste
+            into any chatbot yourself.
+          </p>
         </div>
 
         <!-- Automated: working/loading state -->
@@ -358,7 +367,7 @@
         <div class="research-fail" hidden>
           <p class="research-error research-fail-msg"></p>
           <div class="research-actions research-actions--end">
-            <button type="button" class="action-link research-fail-manual">do it manually (free)</button>
+            <button type="button" class="action-link research-fail-manual">free search instead</button>
             <button type="button" class="action-link action-link--quiet research-fail-cancel">cancel</button>
             <button type="button" class="save-btn research-retry-btn">retry</button>
           </div>

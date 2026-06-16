@@ -1414,6 +1414,13 @@ textarea.autogrow {
   padding: var(--space-3) 0;
 }
 
+/* The display:flex above would otherwise override the `hidden` attribute, so
+   the spinner would show (and spin) even while idle. Force it hidden until an
+   AI search is actually running. */
+.research-loading[hidden] {
+  display: none;
+}
+
 .research-spinner {
   width: 22px;
   height: 22px;

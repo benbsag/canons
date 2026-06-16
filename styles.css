@@ -1328,23 +1328,48 @@ textarea.autogrow {
   background: rgba(28, 26, 23, 0.02);
 }
 
-/* Mode bar — "Automatic research" / "Manual research (free)" with a switch. */
+/* Mode bar — current mode (filled pill) + a switch button. */
 .research-modebar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding-bottom: var(--space-3);
-  margin-bottom: var(--space-3);
-  border-bottom: 1px solid var(--hairline);
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
 .research-mode-label {
   font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--paper);
+  background: var(--accent);
+  padding: 6px 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.research-modebar .research-mode-switch {
+  font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: lowercase;
   color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 1;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.research-modebar .research-mode-switch:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Working / loading state */
@@ -1384,6 +1409,31 @@ textarea.autogrow {
   letter-spacing: 0.04em;
   color: var(--muted);
   margin: 0;
+}
+
+.research-loading .research-actions {
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.research-loading-cancel {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 9px 28px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.research-loading-cancel:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .research-actions--end {

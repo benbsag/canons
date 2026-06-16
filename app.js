@@ -1011,7 +1011,6 @@
 
     const loadingView = panel.querySelector(".research-loading");
     const loadingCancel = panel.querySelector(".research-loading-cancel");
-    const loadingManual = panel.querySelector(".research-loading-manual");
 
     const failView = panel.querySelector(".research-fail");
     const failMsg = panel.querySelector(".research-fail-msg");
@@ -1172,7 +1171,6 @@
 
     // Loading state controls.
     loadingCancel.addEventListener("click", close);
-    loadingManual.addEventListener("click", () => startManual(false));
 
     // Failure state controls.
     failCancel.addEventListener("click", close);

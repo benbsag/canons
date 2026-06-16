@@ -6,13 +6,14 @@
 // the cache is only used as a fallback when offline. This means a new Netlify
 // deploy shows up after a single reload — no need to hand-bump a version on
 // every change. (Bump CACHE_NAME only if you want to force-purge old caches.)
-const CACHE_NAME = "wine-cave-shell-v4";
+const CACHE_NAME = "wine-cave-shell-v5";
 const SHELL_FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./research.js",
+  "./research-api.js",
   "./storage.js",
   "./sync.js",
   "./manifest.webmanifest",

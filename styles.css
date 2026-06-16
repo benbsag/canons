@@ -195,6 +195,24 @@ html[data-theme^="swiss"] .stamp {
   font-weight: 700;
 }
 
+/* Marble — give the add-wine button the deep-green accent so it matches the
+   "research this wine" button instead of reading as near-black ink. */
+html[data-theme="marble"] .add-btn-large {
+  background: var(--accent);
+}
+
+html[data-theme="marble"] .add-btn-large:hover {
+  background: var(--accent);
+  opacity: 0.88;
+}
+
+/* The AUSGETRUNKEN stamp already uses --accent, but its multiply blend muddies
+   the green over marble's cool ground. Normalise the blend so the accent reads
+   true, while opacity keeps the faded, stamped-on tone. */
+html[data-theme="marble"] .stamp {
+  mix-blend-mode: normal;
+}
+
 /* Swiss Primary — each non-finished entry's text takes a random primary
    colour (assigned in JS); let the producer/cuvée/vintage inherit it. */
 html[data-theme="swiss-primary"] .wine-entry:not(.wine-entry--finished) .wine-producer,
@@ -477,6 +495,36 @@ html[data-theme^="swiss"] .brand-row .brand {
   display: block;
   margin-top: 2px;
   letter-spacing: 0.08em;
+}
+
+/* "how does this work?" explainer — collapsed by default */
+.sync-help-toggle {
+  margin: 0 0 var(--space-3);
+}
+
+.sync-help-panel {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: var(--space-3) var(--space-3) calc(var(--space-3) - var(--space-2));
+  margin: 0 0 var(--space-4);
+}
+
+.sync-help-block {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+}
+
+.sync-help-block strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.sync-help-diff {
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-3);
 }
 
 .sync-token-input,
@@ -1278,6 +1326,72 @@ textarea.autogrow {
   padding: var(--space-3);
   margin-bottom: var(--space-4);
   background: rgba(28, 26, 23, 0.02);
+}
+
+/* Mode bar — "Automatic research" / "Manual research (free)" with a switch. */
+.research-modebar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.research-mode-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--ink);
+}
+
+/* Working / loading state */
+.research-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.research-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--hairline);
+  border-top-color: var(--accent);
+  animation: research-spin 0.8s linear infinite;
+}
+
+@keyframes research-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .research-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+.research-loading-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.research-actions--end {
+  flex-wrap: wrap;
+}
+
+.research-fail-msg {
+  margin-top: 0;
 }
 
 .research-help {

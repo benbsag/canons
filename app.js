@@ -21,6 +21,11 @@
     applyResearchToWine,
   } = window.WineCave.research;
 
+  // Automated research engine (network). Falls back to a no-op stub if the
+  // script didn't load, so the manual flow always works.
+  const researchApi =
+    window.WineCave.researchApi || { isConfigured: () => false, fetchResearch: () => Promise.reject(new Error("Research engine not loaded.")) };
+
   const CONFIDENCE_TITLES = {
     sourced: "Found in a reliable source",
     inferred: "Reasoned from related facts",
@@ -42,6 +47,24 @@
   ];
   const DEFAULT_THEME = "paper";
   const THEME_KEY = "canons:theme:v1";
+  const RESEARCH_MODE_KEY = "canons:researchMode:v1";
+
+  // Research mode: "auto" runs a background API call (costs a few cents/wine);
+  // "manual" uses the free copy/paste flow — kept for demos and offline use.
+  function getResearchMode() {
+    try {
+      return localStorage.getItem(RESEARCH_MODE_KEY) === "manual" ? "manual" : "auto";
+    } catch (err) {
+      return "auto";
+    }
+  }
+  function setResearchMode(mode) {
+    try {
+      localStorage.setItem(RESEARCH_MODE_KEY, mode === "manual" ? "manual" : "auto");
+    } catch (err) {
+      /* private mode — just won't persist */
+    }
+  }
 
   // Swiss Primary palette — each wine entry gets one, picked deterministically
   // from its id so the colour is stable across re-renders (no flicker while
@@ -983,12 +1006,26 @@
     const panel = researchPanelTemplate.content.firstElementChild.cloneNode(true);
     mount.appendChild(panel);
 
+    const modeLabel = panel.querySelector(".research-mode-label");
+    const modeSwitch = panel.querySelector(".research-mode-switch");
+
+    const loadingView = panel.querySelector(".research-loading");
+    const loadingCancel = panel.querySelector(".research-loading-cancel");
+    const loadingManual = panel.querySelector(".research-loading-manual");
+
+    const failView = panel.querySelector(".research-fail");
+    const failMsg = panel.querySelector(".research-fail-msg");
+    const failCancel = panel.querySelector(".research-fail-cancel");
+    const failManual = panel.querySelector(".research-fail-manual");
+    const retryBtn = panel.querySelector(".research-retry-btn");
+
     const inputView = panel.querySelector(".research-input");
     const reviewView = panel.querySelector(".research-review");
     const copyBtn = panel.querySelector(".research-copy-btn");
     const copyStatus = panel.querySelector(".research-copy-status");
     const paste = panel.querySelector(".research-paste");
-    const errorEl = panel.querySelector(".research-error");
+    // Scope to the manual input view — the fail view also has a .research-error.
+    const errorEl = inputView.querySelector(".research-error");
     const cancelBtn = panel.querySelector(".research-cancel-btn");
     const reviewBtn = panel.querySelector(".research-review-btn");
     const previewList = panel.querySelector(".research-preview-list");
@@ -996,12 +1033,39 @@
     const applyBtn = panel.querySelector(".research-apply-btn");
 
     let pending = null;
+    let inFlight = null; // AbortController for an active API call
+
+    // Show exactly one of the panel's views (the mode bar always stays).
+    function showView(name) {
+      loadingView.hidden = name !== "loading";
+      failView.hidden = name !== "fail";
+      inputView.hidden = name !== "input";
+      reviewView.hidden = name !== "review";
+    }
+
+    function abortInFlight() {
+      if (inFlight) {
+        inFlight.abort();
+        inFlight = null;
+      }
+    }
+
+    function renderModeBar() {
+      const mode = getResearchMode();
+      if (mode === "manual") {
+        modeLabel.textContent = "manual research · free";
+        modeSwitch.textContent = "switch to automatic";
+      } else {
+        modeLabel.textContent = "automatic research · ai";
+        modeSwitch.textContent = "switch to manual (free)";
+      }
+    }
 
     function close() {
+      abortInFlight();
       pending = null;
       panel.hidden = true;
-      inputView.hidden = false;
-      reviewView.hidden = true;
+      showView("input");
       paste.value = "";
       errorEl.hidden = true;
       errorEl.textContent = "";
@@ -1009,16 +1073,113 @@
       previewList.innerHTML = "";
     }
 
+    // Drop a parsed result into the existing review/verify screen.
+    function toReview(parsed) {
+      pending = parsed;
+      // Preview against current form state so unsaved edits count as "current".
+      renderResearchPreview(previewList, parsed, buildBase());
+      showView("review");
+    }
+
+    function showFailure(message) {
+      failMsg.textContent = message;
+      showView("fail");
+    }
+
+    // Run the automated API research: loading → parse → review.
+    function startAuto() {
+      if (!isReady()) return;
+      const base = buildBase();
+      if (!base.producer) {
+        showFailure("Enter a producer first, then research.");
+        return;
+      }
+      if (!researchApi.isConfigured()) {
+        showFailure(
+          "Automated research isn't set up yet — link sync (it shares your Supabase project), or switch to manual research below.",
+        );
+        return;
+      }
+
+      abortInFlight();
+      const controller = new AbortController();
+      inFlight = controller;
+      showView("loading");
+
+      researchApi
+        .fetchResearch(base, { signal: controller.signal })
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          inFlight = null;
+          let parsed;
+          try {
+            parsed = parseResearchResponse(result.text);
+          } catch (err) {
+            showFailure(
+              "The research came back but couldn't be read as data. Try again, or use manual research.",
+            );
+            return;
+          }
+          toReview(parsed);
+        })
+        .catch((err) => {
+          if (controller.signal.aborted || (err && err.name === "AbortError")) return;
+          inFlight = null;
+          showFailure((err && err.message) || "Research failed. Try again.");
+        });
+    }
+
+    // Open the manual copy/paste flow (free). `persist` records it as the new
+    // default; the inline "do it manually" links pass false (one-off use).
+    function startManual(persist) {
+      abortInFlight();
+      if (persist) {
+        setResearchMode("manual");
+        renderModeBar();
+      }
+      errorEl.hidden = true;
+      showView("input");
+    }
+
+    // What happens when the panel opens (or the mode is switched to auto).
+    function startForMode() {
+      if (getResearchMode() === "manual") {
+        showView("input");
+      } else {
+        startAuto();
+      }
+    }
+
     trigger.addEventListener("click", () => {
       if (!isReady()) return;
       if (panel.hidden) {
         close();
         panel.hidden = false;
+        renderModeBar();
+        startForMode();
       } else {
         close();
       }
     });
 
+    modeSwitch.addEventListener("click", () => {
+      const next = getResearchMode() === "manual" ? "auto" : "manual";
+      setResearchMode(next);
+      renderModeBar();
+      errorEl.hidden = true;
+      startForMode();
+    });
+
+    // Loading state controls.
+    loadingCancel.addEventListener("click", close);
+    loadingManual.addEventListener("click", () => startManual(false));
+
+    // Failure state controls.
+    failCancel.addEventListener("click", close);
+    failManual.addEventListener("click", () => startManual(false));
+    retryBtn.addEventListener("click", startAuto);
+
+    // Manual flow.
     cancelBtn.addEventListener("click", close);
 
     copyBtn.addEventListener("click", () => {
@@ -1050,16 +1211,17 @@
         errorEl.hidden = false;
         return;
       }
-      pending = parsed;
-      // Preview against current form state so unsaved edits count as "current".
-      renderResearchPreview(previewList, parsed, buildBase());
-      inputView.hidden = true;
-      reviewView.hidden = false;
+      toReview(parsed);
     });
 
     backBtn.addEventListener("click", () => {
-      reviewView.hidden = true;
-      inputView.hidden = false;
+      // Return to wherever the result came from: manual paste, or a fresh
+      // automated attempt.
+      if (getResearchMode() === "manual") {
+        showView("input");
+      } else {
+        startAuto();
+      }
     });
 
     applyBtn.addEventListener("click", () => {
@@ -1259,6 +1421,16 @@
   settingsBackBtn.addEventListener("click", () => {
     resolveInline(false); // cancel any open prompt before leaving
     showSettingsPage("main");
+  });
+
+  // "how does this work?" — toggle the sync/backup explainer (collapsed by default).
+  const syncHelpToggle = document.getElementById("sync-help-toggle");
+  const syncHelpPanel = document.getElementById("sync-help-panel");
+  syncHelpToggle.addEventListener("click", () => {
+    const open = syncHelpPanel.hidden;
+    syncHelpPanel.hidden = !open;
+    syncHelpToggle.setAttribute("aria-expanded", String(open));
+    syncHelpToggle.textContent = open ? "hide" : "how does this work?";
   });
 
   // Inline, non-blocking confirm — native confirm()/alert() are unreliable in

@@ -1917,80 +1917,98 @@
     showView("compare-detail");
   }
 
+  // One card per dimension, comparing every wine within it (swipe across the
+  // five dimensions, plus a final sources card).
   function renderCompareCards(cmp) {
     compareCardsEl.innerHTML = "";
     compareDotsEl.innerHTML = "";
     const wines = cmp.wines || [];
-    wines.forEach((entry) => {
-      const card = document.createElement("article");
-      card.className = "compare-card";
+    const cards = [];
 
-      const name = document.createElement("p");
-      name.className = "compare-card-name";
-      name.textContent = [entry.producer, entry.cuvee].filter(Boolean).join(" — ") || "unknown wine";
-      if (entry.source === "cellar" || entry.added_to_cellar_id) {
-        const badge = document.createElement("span");
-        badge.className = "compare-card-badge";
-        badge.textContent = "in cellar";
-        name.appendChild(badge);
-      }
-      card.appendChild(name);
-
-      const vint = document.createElement("p");
-      vint.className = "compare-card-vintage";
-      vint.textContent = entry.vintage || "NV";
-      card.appendChild(vint);
-
-      const dims = entry.dims || compareEngine.emptyDims();
-      for (const d of compareEngine.COMPARE_DIMENSIONS) {
-        const field = dims[d.key] || { value: "", confidence: "not_found" };
-        const wrap = document.createElement("div");
-        wrap.className = "compare-dim";
-        const label = document.createElement("p");
-        label.className = "compare-dim-label";
+    // A wine's name line inside a card, with an optional confidence dot.
+    function wineNameLine(entry, confidence) {
+      const p = document.createElement("p");
+      p.className = "compare-wine-name";
+      if (confidence) {
         const dot = document.createElement("span");
         dot.className = "confidence-dot";
-        dot.dataset.confidence = field.confidence;
-        dot.title = CONFIDENCE_TITLES[field.confidence] || field.confidence;
-        label.appendChild(dot);
-        label.appendChild(document.createTextNode(d.label));
+        dot.dataset.confidence = confidence;
+        dot.title = CONFIDENCE_TITLES[confidence] || confidence;
+        p.appendChild(dot);
+      }
+      p.appendChild(document.createTextNode(compareEntryLabel(entry)));
+      return p;
+    }
+
+    for (const d of compareEngine.COMPARE_DIMENSIONS) {
+      const card = document.createElement("article");
+      card.className = "compare-card";
+      const title = document.createElement("p");
+      title.className = "compare-card-title";
+      title.textContent = d.label;
+      card.appendChild(title);
+
+      wines.forEach((entry) => {
+        const dims = entry.dims || compareEngine.emptyDims();
+        const field = dims[d.key] || { value: "", confidence: "not_found" };
+        const block = document.createElement("div");
+        block.className = "compare-wine-block";
+        block.appendChild(wineNameLine(entry, field.confidence));
         const val = document.createElement("p");
         val.className = "compare-dim-value";
         val.textContent = field.value || "—";
-        wrap.appendChild(label);
-        wrap.appendChild(val);
-        card.appendChild(wrap);
-      }
+        block.appendChild(val);
+        card.appendChild(block);
+      });
 
-      const sources = dims.sources || [];
-      if (sources.length) {
-        const swrap = document.createElement("div");
-        swrap.className = "compare-card-sources";
-        const slabel = document.createElement("p");
-        slabel.className = "compare-dim-label";
-        slabel.textContent = "sources";
-        swrap.appendChild(slabel);
-        const ul = document.createElement("ul");
-        ul.className = "sources-list";
-        sources.forEach((url) => {
-          const li = document.createElement("li");
-          const a = document.createElement("a");
-          a.href = url;
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          a.textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-          li.appendChild(a);
-          ul.appendChild(li);
-        });
-        swrap.appendChild(ul);
-        card.appendChild(swrap);
-      }
+      cards.push(card);
+    }
 
-      compareCardsEl.appendChild(card);
-    });
+    // Final sources card (per wine), only if any sources exist.
+    const anySources = wines.some((e) => e.dims && (e.dims.sources || []).length);
+    if (anySources) {
+      const card = document.createElement("article");
+      card.className = "compare-card";
+      const title = document.createElement("p");
+      title.className = "compare-card-title";
+      title.textContent = "sources";
+      card.appendChild(title);
 
-    if (wines.length > 1) {
-      wines.forEach((_, i) => {
+      wines.forEach((entry) => {
+        const srcs = (entry.dims && entry.dims.sources) || [];
+        const block = document.createElement("div");
+        block.className = "compare-wine-block";
+        block.appendChild(wineNameLine(entry, null));
+        if (srcs.length) {
+          const ul = document.createElement("ul");
+          ul.className = "sources-list";
+          srcs.forEach((url) => {
+            const li = document.createElement("li");
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+            li.appendChild(a);
+            ul.appendChild(li);
+          });
+          block.appendChild(ul);
+        } else {
+          const none = document.createElement("p");
+          none.className = "compare-dim-value";
+          none.textContent = "—";
+          block.appendChild(none);
+        }
+        card.appendChild(block);
+      });
+
+      cards.push(card);
+    }
+
+    cards.forEach((c) => compareCardsEl.appendChild(c));
+
+    if (cards.length > 1) {
+      cards.forEach((_, i) => {
         const dot = document.createElement("span");
         dot.className = "compare-dot" + (i === 0 ? " is-active" : "");
         compareDotsEl.appendChild(dot);

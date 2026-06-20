@@ -1585,6 +1585,9 @@
   const compareListEl = document.getElementById("compare-list");
 
   const compareBuildBackBtn = document.getElementById("compare-build-back-btn");
+  const compareBuildTitle = document.getElementById("compare-build-title");
+  const compareExtend = document.getElementById("compare-extend");
+  const compareExtendTitle = document.getElementById("compare-extend-title");
   const compareChosenEl = document.getElementById("compare-chosen");
   const compareAddCellarBtn = document.getElementById("compare-add-cellar-btn");
   const compareAddOutsideBtn = document.getElementById("compare-add-outside-btn");
@@ -1622,6 +1625,7 @@
   const compareDetailTitle = document.getElementById("compare-detail-title");
   const compareDetailBackBtn = document.getElementById("compare-detail-back-btn");
   const compareDeleteBtn = document.getElementById("compare-delete-btn");
+  const compareAddWineBtn = document.getElementById("compare-add-wine-btn");
   const comparePromote = document.getElementById("compare-promote");
   const comparePromoteList = document.getElementById("compare-promote-list");
   const comparePromoteBtn = document.getElementById("compare-promote-btn");
@@ -1631,6 +1635,7 @@
   let compareInFlight = null; // AbortController for an active run
   let currentComparisonId = null;
   let currentComparison = null; // the loaded comparison object (for promote)
+  let compareExtendTarget = null; // id of the comparison being extended, or null
   let compareDeleteArmed = false;
   let compareDeleteTimer = null;
 
@@ -1675,15 +1680,49 @@
   }
 
   // ---- Builder ----
-  function startNewComparison() {
+  function resetBuilder() {
     abortCompare();
     compareEntries = [];
     comparePaste.value = "";
     compareManualError.hidden = true;
     compareCellarPicker.hidden = true;
     compareOutsideForm.hidden = true;
+  }
+
+  function startNewComparison() {
+    resetBuilder();
+    compareExtendTarget = null;
+    compareExtend.hidden = true;
+    compareBuildTitle.textContent = "New comparison";
     renderChosen();
     showView("compare-build");
+  }
+
+  // Extend the open comparison: seed the builder with its wines, in extend mode.
+  function extendComparison() {
+    if (!currentComparison) return;
+    resetBuilder();
+    compareExtendTarget = currentComparison.id;
+    compareEntries = (currentComparison.wines || []).map((e) => ({
+      source: e.source,
+      wine_id: e.wine_id,
+      producer: e.producer,
+      cuvee: e.cuvee,
+      vintage: e.vintage,
+      added_to_cellar_id: e.added_to_cellar_id || null,
+    }));
+    compareExtendTitle.textContent = currentComparison.title || "comparison";
+    compareExtend.hidden = false;
+    const buildRadio = compareExtend.querySelector('input[value="build"]');
+    if (buildRadio) buildRadio.checked = true;
+    compareBuildTitle.textContent = "Add a wine";
+    renderChosen();
+    showView("compare-build");
+  }
+
+  function extendMode() {
+    const r = compareExtend.querySelector('input[name="compare-extend-mode"]:checked');
+    return r ? r.value : "build";
   }
 
   function renderChosen() {
@@ -1760,7 +1799,13 @@
   compareNewBtn.addEventListener("click", startNewComparison);
   compareBuildBackBtn.addEventListener("click", () => {
     abortCompare();
-    openCompareList();
+    if (compareExtendTarget) {
+      const target = compareExtendTarget;
+      compareExtendTarget = null;
+      openComparison(target);
+    } else {
+      openCompareList();
+    }
   });
 
   compareAddCellarBtn.addEventListener("click", () => {
@@ -1830,9 +1875,28 @@
 
   function saveAndOpenComparison(dimsList) {
     const entries = compareEntries.map((e) => ({ ...e })); // detach from builder
-    const cmp = compareEngine.createComparison(entries, dimsList);
+    let cmp;
+    if (compareExtendTarget && extendMode() === "build") {
+      // Build on the existing comparison: re-run rewrites all wines + dims,
+      // preserving the id, created_at and any promote links.
+      const existing = compareStore.get(compareExtendTarget) || {};
+      compareEngine.attachDims(entries, dimsList);
+      cmp = {
+        ...existing,
+        id: compareExtendTarget,
+        created_at: existing.created_at || new Date().toISOString(),
+        title: compareEngine.comparisonTitle(entries),
+        updated_at: new Date().toISOString(),
+        wines: entries,
+      };
+    } else {
+      // New comparison (fresh, or "save as new" when extending).
+      cmp = compareEngine.createComparison(entries, dimsList);
+    }
     compareStore.save(cmp);
     compareEntries = [];
+    compareExtendTarget = null;
+    compareExtend.hidden = true;
     openComparison(cmp.id);
   }
 
@@ -2073,6 +2137,7 @@
     }
   });
 
+  compareAddWineBtn.addEventListener("click", extendComparison);
   compareDetailBackBtn.addEventListener("click", openCompareList);
   compareDeleteBtn.addEventListener("click", () => {
     if (!currentComparisonId) return;

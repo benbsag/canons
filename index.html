@@ -115,8 +115,21 @@
       <section id="view-compare-build" class="view" hidden>
         <header class="view-header">
           <button class="action-link" type="button" id="compare-build-back-btn">‹ back</button>
-          <p class="brand">New comparison</p>
+          <p class="brand" id="compare-build-title">New comparison</p>
         </header>
+
+        <!-- Shown only when extending an existing comparison -->
+        <div class="compare-extend" id="compare-extend" hidden>
+          <p class="compare-extend-q">adding to <strong id="compare-extend-title"></strong></p>
+          <label class="compare-extend-opt">
+            <input type="radio" name="compare-extend-mode" value="build" checked />
+            build on this comparison <span>(re-runs all wines together)</span>
+          </label>
+          <label class="compare-extend-opt">
+            <input type="radio" name="compare-extend-mode" value="new" />
+            save as a new comparison <span>(keeps the original)</span>
+          </label>
+        </div>
 
         <p class="section-label">wines</p>
         <ul class="compare-chosen" id="compare-chosen"></ul>
@@ -204,6 +217,10 @@
         <p class="meta-line" id="compare-detail-title"></p>
         <div class="compare-cards" id="compare-cards"></div>
         <div class="compare-dots" id="compare-dots" aria-hidden="true"></div>
+
+        <div class="compare-detail-actions">
+          <button type="button" class="backup-btn" id="compare-add-wine-btn">add a wine</button>
+        </div>
 
         <!-- Promote external wines into the cellar (single or bulk) -->
         <div class="compare-promote" id="compare-promote" hidden>

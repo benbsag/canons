@@ -1703,6 +1703,49 @@ html[data-theme] .add-btn-large--secondary:hover {
   accent-color: var(--accent);
 }
 
+/* Extend an existing comparison */
+.compare-detail-actions {
+  margin-top: var(--space-4);
+}
+
+.compare-extend {
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.compare-extend-q {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 var(--space-2);
+}
+
+.compare-extend-q strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.compare-extend-opt {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-top: var(--space-2);
+  cursor: pointer;
+}
+
+.compare-extend-opt span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.compare-extend-opt input {
+  accent-color: var(--accent);
+}
+
 /* Working / loading state */
 .research-loading {
   display: flex;

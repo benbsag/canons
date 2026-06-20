@@ -183,13 +183,15 @@ Adding a wine to an existing comparison prompts: **create a new comparison**
   are stored in a **local store** (`wineCave:comparisons:v1`) and **are included
   in export/import** (backup is implemented — export is `version: 2` with a
   `comparisons` array; import restores them when present, leaves them untouched
-  for older v1 backups). Cross-device **sync is a planned fast-follow**: extend
-  the synced document (`{ wines, tombstones }`) to also carry
-  `{ comparisons, comparison_tombstones }` and merge them per-object with the
-  same newest-edit-wins logic. The comparison store is to be structured so this
-  is a small additive change that leaves the existing wine-sync untouched.
-  `added_to_cellar_id` references a synced wine id (stable across devices), so
-  links resolve correctly once sync lands.
+  for older v1 backups). Cross-device **sync is implemented**: the synced
+  document now also carries `{ comparisons, comparison_tombstones }`, merged
+  per-object with the same newest-edit-wins logic as wines (the comparison store
+  records deletion tombstones, and `mergeCellars` is reused since comparisons
+  also key by `id` + `updated_at`). The wine-sync path is untouched. Backward
+  compatible: a pre-update client that pushes without comparisons can't wipe
+  them permanently — the next updated client restores them from its local copy
+  on the following sync. `added_to_cellar_id` references a synced wine id
+  (stable across devices), so promote links resolve correctly.
 - **Stub flagging:** add a `needs_research` marker (and a visible "needs info"
   badge in the cellar list) distinct from a fully-researched wine with
   `last_researched` set.

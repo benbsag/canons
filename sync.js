@@ -128,9 +128,13 @@
     const rows = await res.json();
     if (!Array.isArray(rows) || rows.length === 0) return null;
     const data = rows[0].data || {};
+    const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
     return {
       wines: Array.isArray(data.wines) ? data.wines : [],
-      tombstones: data.tombstones && typeof data.tombstones === "object" ? data.tombstones : {},
+      tombstones: obj(data.tombstones),
+      // Comparisons (absent in pre-v2 remote docs → empty).
+      comparisons: Array.isArray(data.comparisons) ? data.comparisons : [],
+      comparison_tombstones: obj(data.comparison_tombstones),
     };
   }
 
@@ -179,10 +183,35 @@
   async function syncNow() {
     if (!config) throw new Error("Sync isn't set up.");
     const before = JSON.stringify(WineCave.getAllWines());
-    const remote = await pull();
-    const merged = WineCave.mergeCellars(WineCave.getCellar(), remote);
+    const remote = (await pull()) || {};
+
+    // Wines (existing path).
+    const merged = WineCave.mergeCellars(WineCave.getCellar(), {
+      wines: remote.wines,
+      tombstones: remote.tombstones,
+    });
     WineCave.applyCellar(merged);
-    await push(merged);
+
+    // Comparisons — same newest-edit-wins merge, reusing mergeCellars (it keys
+    // by id + updated_at, which comparisons also have). Skipped gracefully if
+    // the comparison store isn't loaded.
+    let mergedCmp = { wines: [], tombstones: {} };
+    const cs = WineCave.compareStore;
+    if (cs && cs.getDoc) {
+      const localCmp = cs.getDoc();
+      mergedCmp = WineCave.mergeCellars(
+        { wines: localCmp.comparisons, tombstones: localCmp.tombstones },
+        { wines: remote.comparisons, tombstones: remote.comparison_tombstones },
+      );
+      cs.applyDoc({ comparisons: mergedCmp.wines, tombstones: mergedCmp.tombstones });
+    }
+
+    await push({
+      wines: merged.wines,
+      tombstones: merged.tombstones,
+      comparisons: mergedCmp.wines,
+      comparison_tombstones: mergedCmp.tombstones,
+    });
     setLastSync(new Date().toISOString());
     const after = JSON.stringify(WineCave.getAllWines());
     return { changed: before !== after };

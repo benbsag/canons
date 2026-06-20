@@ -1,16 +1,20 @@
 // ---------------------------------------------------------------------------
-// Wine Cave — comparison store (local-first)
+// Wine Cave — comparison store (local-first, syncable)
 //
-// Persists saved comparisons in localStorage. Per COMPARE_SPEC.md §11 the first
-// build is local-only; comparisons are included in export/import (Stage 5) for
-// backup, and cross-device sync is a planned additive fast-follow. Kept as a
-// thin, single-seam module so swapping in sync later doesn't touch the UI.
+// Persists saved comparisons in localStorage. Comparisons are included in
+// export/import for backup, and now also sync across devices: getDoc/applyDoc
+// expose the comparisons + deletion tombstones as one document, which the sync
+// layer merges with the same newest-edit-wins logic used for wines.
 //
 // Exposed on window.WineCave.compareStore.
 // ---------------------------------------------------------------------------
 
 (function () {
   const STORAGE_KEY = "wineCave:comparisons:v1";
+  // Deletions are remembered as tombstones { id: ISO } so a delete on one
+  // device wins over a stale copy on another when syncing.
+  const TOMBSTONE_KEY = "wineCave:comparisonTombstones:v1";
+  const TOMBSTONE_TTL_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
 
   function readAll() {
     try {
@@ -28,6 +32,35 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     } catch (err) {
       /* quota / private mode — comparison just won't persist */
+    }
+  }
+
+  function readTombstones() {
+    try {
+      const raw = localStorage.getItem(TOMBSTONE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function pruneTombstones(tombstones) {
+    const cutoff = Date.now() - TOMBSTONE_TTL_MS;
+    const out = {};
+    for (const [id, iso] of Object.entries(tombstones || {})) {
+      const t = Date.parse(iso);
+      if (!isNaN(t) && t >= cutoff) out[id] = iso;
+    }
+    return out;
+  }
+
+  function writeTombstones(tombstones) {
+    try {
+      localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(pruneTombstones(tombstones)));
+    } catch (err) {
+      /* quota / private mode */
     }
   }
 
@@ -50,17 +83,52 @@
     if (i === -1) all.push(comparison);
     else all[i] = comparison;
     writeAll(all);
+    // Saving clears any stale tombstone for this id (a re-created comparison
+    // wins over its own past deletion).
+    const t = readTombstones();
+    if (t[comparison.id]) {
+      delete t[comparison.id];
+      writeTombstones(t);
+    }
     return comparison;
   }
 
   function remove(id) {
     writeAll(readAll().filter((c) => c.id !== id));
+    const t = readTombstones();
+    t[id] = new Date().toISOString();
+    writeTombstones(t);
   }
 
   /** Replace the whole store (used when restoring an import backup). */
   function replaceAll(comparisons) {
     writeAll(Array.isArray(comparisons) ? comparisons : []);
+    writeTombstones({}); // a restore is the new source of truth
   }
 
-  window.WineCave.compareStore = { list, get, save, remove, replaceAll };
+  function getTombstones() {
+    return readTombstones();
+  }
+
+  /** The whole local comparison set as one document, for syncing. */
+  function getDoc() {
+    return { comparisons: readAll(), tombstones: readTombstones() };
+  }
+
+  /** Replace the local comparison set verbatim — used by sync after merging. */
+  function applyDoc(doc) {
+    writeAll(Array.isArray(doc && doc.comparisons) ? doc.comparisons : []);
+    writeTombstones((doc && doc.tombstones) || {});
+  }
+
+  window.WineCave.compareStore = {
+    list,
+    get,
+    save,
+    remove,
+    replaceAll,
+    getTombstones,
+    getDoc,
+    applyDoc,
+  };
 })();

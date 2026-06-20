@@ -1295,11 +1295,13 @@
 
   exportBtn.addEventListener("click", () => {
     const wines = getAllWines();
+    const comparisons = compareStore.list();
     const payload = {
       app: "CANONS",
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       wines,
+      comparisons,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1310,7 +1312,10 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    flashBackupStatus(`exported ${wines.length} wine${wines.length === 1 ? "" : "s"}`);
+    const cmpNote = comparisons.length
+      ? ` + ${comparisons.length} comparison${comparisons.length === 1 ? "" : "s"}`
+      : "";
+    flashBackupStatus(`exported ${wines.length} wine${wines.length === 1 ? "" : "s"}${cmpNote}`);
   });
 
   importInput.addEventListener("change", () => {
@@ -1342,9 +1347,17 @@
         }
 
         const saved = replaceAllWines(wines);
+        // Restore comparisons too if the backup carries them (v2+). Absent in
+        // old backups — leave existing comparisons untouched in that case.
+        let cmpNote = "";
+        if (parsed && Array.isArray(parsed.comparisons)) {
+          compareStore.replaceAll(parsed.comparisons);
+          const n = parsed.comparisons.length;
+          cmpNote = ` + ${n} comparison${n === 1 ? "" : "s"}`;
+        }
         sync.scheduleSync();
         render(filterInput.value);
-        flashBackupStatus(`imported ${saved.length} wine${saved.length === 1 ? "" : "s"}`);
+        flashBackupStatus(`imported ${saved.length} wine${saved.length === 1 ? "" : "s"}${cmpNote}`);
       } catch (err) {
         console.error("Wine Cave: import failed", err);
         flashBackupStatus("that file isn't a CANONS backup");

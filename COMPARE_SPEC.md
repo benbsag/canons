@@ -179,10 +179,11 @@ Adding a wine to an existing comparison prompts: **create a new comparison**
 
 ## 11. Implementation notes / open items
 
-- **Storage & sync (decided: local-first + backup, sync next):** the first
-  build stores comparisons in a **local store** only (e.g. a
-  `wineCave:comparisons:v1` key) and includes them in **export/import** so there
-  is no data-loss risk. Cross-device **sync is a planned fast-follow**: extend
+- **Storage & sync (decided: local-first + backup, sync next):** comparisons
+  are stored in a **local store** (`wineCave:comparisons:v1`) and **are included
+  in export/import** (backup is implemented — export is `version: 2` with a
+  `comparisons` array; import restores them when present, leaves them untouched
+  for older v1 backups). Cross-device **sync is a planned fast-follow**: extend
   the synced document (`{ wines, tombstones }`) to also carry
   `{ comparisons, comparison_tombstones }` and merge them per-object with the
   same newest-edit-wins logic. The comparison store is to be structured so this

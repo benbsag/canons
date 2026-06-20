@@ -57,5 +57,10 @@
     writeAll(readAll().filter((c) => c.id !== id));
   }
 
-  window.WineCave.compareStore = { list, get, save, remove };
+  /** Replace the whole store (used when restoring an import backup). */
+  function replaceAll(comparisons) {
+    writeAll(Array.isArray(comparisons) ? comparisons : []);
+  }
+
+  window.WineCave.compareStore = { list, get, save, remove, replaceAll };
 })();

@@ -1647,6 +1647,62 @@ html[data-theme] .add-btn-large--secondary:hover {
   background: var(--accent);
 }
 
+/* "needs info" badge on cellar stubs added from a comparison */
+.wine-needs-tag {
+  display: inline-block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+
+/* Promote external wines into the cellar */
+.compare-promote {
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-3);
+}
+
+.compare-promote-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+}
+
+.compare-promote-hint strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.compare-promote-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.compare-promote-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.compare-promote-item input {
+  accent-color: var(--accent);
+}
+
 /* Working / loading state */
 .research-loading {
   display: flex;

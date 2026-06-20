@@ -614,6 +614,13 @@
       main.appendChild(tag);
     }
 
+    if (wine.needs_research) {
+      const tag = document.createElement("span");
+      tag.className = "wine-needs-tag";
+      tag.textContent = "needs info";
+      main.appendChild(tag);
+    }
+
     row.appendChild(main);
 
     const vintage = document.createElement("span");
@@ -1615,10 +1622,15 @@
   const compareDetailTitle = document.getElementById("compare-detail-title");
   const compareDetailBackBtn = document.getElementById("compare-detail-back-btn");
   const compareDeleteBtn = document.getElementById("compare-delete-btn");
+  const comparePromote = document.getElementById("compare-promote");
+  const comparePromoteList = document.getElementById("compare-promote-list");
+  const comparePromoteBtn = document.getElementById("compare-promote-btn");
+  const comparePromoteStatus = document.getElementById("compare-promote-status");
 
   let compareEntries = []; // entries being built
   let compareInFlight = null; // AbortController for an active run
   let currentComparisonId = null;
+  let currentComparison = null; // the loaded comparison object (for promote)
   let compareDeleteArmed = false;
   let compareDeleteTimer = null;
 
@@ -1910,12 +1922,83 @@
       return;
     }
     currentComparisonId = id;
+    currentComparison = cmp;
     compareDeleteArmed = false;
     compareDeleteBtn.textContent = "delete";
     compareDetailTitle.textContent = cmp.title || "comparison";
     renderCompareCards(cmp);
+    renderPromote(cmp);
     showView("compare-detail");
   }
+
+  // List external wines not yet added to the cellar, with checkboxes for bulk
+  // add. Hidden when there's nothing left to promote.
+  function renderPromote(cmp) {
+    comparePromoteList.innerHTML = "";
+    comparePromoteStatus.textContent = "";
+    const externals = (cmp.wines || [])
+      .map((entry, index) => ({ entry, index }))
+      .filter((x) => x.entry.source === "external" && !x.entry.added_to_cellar_id);
+    comparePromote.hidden = externals.length === 0;
+    if (!externals.length) return;
+    externals.forEach(({ entry, index }) => {
+      const li = document.createElement("li");
+      li.className = "compare-promote-item";
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = true;
+      cb.dataset.wineIndex = String(index);
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(" " + compareEntryLabel(entry)));
+      li.appendChild(label);
+      comparePromoteList.appendChild(li);
+    });
+  }
+
+  // Build a catalogue stub from an external comparison entry: identity + the
+  // reputation note seeded into context, flagged as needing full research.
+  function stubWineFromEntry(entry) {
+    const rep = (entry.dims && entry.dims.reputation) || { value: "", confidence: "not_found" };
+    const partial = {
+      producer: entry.producer || "",
+      cuvee: entry.cuvee || "",
+      vintage: entry.vintage || null,
+      expert_context: rep.value || "",
+      needs_research: true,
+    };
+    if (rep.value) partial.confidence_flags = { expert_context: rep.confidence };
+    return createWine(partial);
+  }
+
+  comparePromoteBtn.addEventListener("click", () => {
+    if (!currentComparison) return;
+    const checks = [...comparePromoteList.querySelectorAll("input[type=checkbox]:checked")];
+    if (!checks.length) {
+      comparePromoteStatus.textContent = "select at least one wine";
+      return;
+    }
+    let added = 0;
+    checks.forEach((cb) => {
+      const idx = Number(cb.dataset.wineIndex);
+      const entry = currentComparison.wines[idx];
+      if (!entry || entry.added_to_cellar_id) return;
+      const saved = saveWine(stubWineFromEntry(entry));
+      entry.added_to_cellar_id = saved.id;
+      added++;
+    });
+    if (!added) return;
+    currentComparison.updated_at = new Date().toISOString();
+    compareStore.save(currentComparison);
+    sync.scheduleSync();
+    render(filterInput.value); // refresh the cellar list (with "needs info" badges)
+    renderCompareCards(currentComparison);
+    renderPromote(currentComparison);
+    comparePromoteStatus.textContent = `added ${added} to cellar — find ${added === 1 ? "it" : "them"} in your cellar`;
+    setTimeout(() => {
+      comparePromoteStatus.textContent = "";
+    }, 3500);
+  });
 
   // One card per dimension, comparing every wine within it (swipe across the
   // five dimensions, plus a final sources card).
@@ -2009,6 +2092,7 @@
     compareDeleteBtn.textContent = "delete";
     compareStore.remove(currentComparisonId);
     currentComparisonId = null;
+    currentComparison = null;
     openCompareList();
   });
 

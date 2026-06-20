@@ -119,6 +119,9 @@
       sources: partial.sources ?? [],
       confidence_flags: partial.confidence_flags ?? {},
       last_researched: partial.last_researched ?? null,
+      // True for stubs added from a comparison: identity (+ seeded context) is
+      // set but the catalogue fields still need a full research pass.
+      needs_research: partial.needs_research ?? false,
     };
   }
 

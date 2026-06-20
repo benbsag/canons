@@ -346,6 +346,8 @@
     }
 
     next.last_researched = now || new Date().toISOString();
+    // Once researched, a comparison stub is a full catalogue entry.
+    next.needs_research = false;
     return next;
   }
 

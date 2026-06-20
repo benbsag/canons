@@ -1964,46 +1964,8 @@
       cards.push(card);
     }
 
-    // Final sources card (per wine), only if any sources exist.
-    const anySources = wines.some((e) => e.dims && (e.dims.sources || []).length);
-    if (anySources) {
-      const card = document.createElement("article");
-      card.className = "compare-card";
-      const title = document.createElement("p");
-      title.className = "compare-card-title";
-      title.textContent = "sources";
-      card.appendChild(title);
-
-      wines.forEach((entry) => {
-        const srcs = (entry.dims && entry.dims.sources) || [];
-        const block = document.createElement("div");
-        block.className = "compare-wine-block";
-        block.appendChild(wineNameLine(entry, null));
-        if (srcs.length) {
-          const ul = document.createElement("ul");
-          ul.className = "sources-list";
-          srcs.forEach((url) => {
-            const li = document.createElement("li");
-            const a = document.createElement("a");
-            a.href = url;
-            a.target = "_blank";
-            a.rel = "noopener noreferrer";
-            a.textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-            li.appendChild(a);
-            ul.appendChild(li);
-          });
-          block.appendChild(ul);
-        } else {
-          const none = document.createElement("p");
-          none.className = "compare-dim-value";
-          none.textContent = "—";
-          block.appendChild(none);
-        }
-        card.appendChild(block);
-      });
-
-      cards.push(card);
-    }
+    // (Sources are still gathered and stored per wine for later use, but not
+    // shown as a card here — the comparison view stays punchy.)
 
     cards.forEach((c) => compareCardsEl.appendChild(c));
 

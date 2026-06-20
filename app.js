@@ -1601,6 +1601,7 @@
   const compareBuildTitle = document.getElementById("compare-build-title");
   const compareExtend = document.getElementById("compare-extend");
   const compareExtendTitle = document.getElementById("compare-extend-title");
+  const comparePinned = document.getElementById("compare-pinned");
   const compareChosenEl = document.getElementById("compare-chosen");
   const compareAddCellarBtn = document.getElementById("compare-add-cellar-btn");
   const compareAddOutsideBtn = document.getElementById("compare-add-outside-btn");
@@ -1610,6 +1611,7 @@
   const compareOutsideForm = document.getElementById("compare-outside-form");
   const compareOutProducer = document.getElementById("compare-out-producer");
   const compareOutCuvee = document.getElementById("compare-out-cuvee");
+  const compareOutGrape = document.getElementById("compare-out-grape");
   const compareOutVintage = document.getElementById("compare-out-vintage");
   const compareOutAddBtn = document.getElementById("compare-out-add-btn");
   const compareBuildHint = document.getElementById("compare-build-hint");
@@ -1702,6 +1704,13 @@
     compareOutsideForm.hidden = true;
   }
 
+  // Pin the chosen-wines block just below the sticky header (measured, so it
+  // sits flush regardless of header height / extend banner).
+  function setPinnedTop() {
+    const header = viewCompareBuild.querySelector(".view-header");
+    if (header && comparePinned) comparePinned.style.top = header.offsetHeight + "px";
+  }
+
   function startNewComparison() {
     resetBuilder();
     compareExtendTarget = null;
@@ -1709,6 +1718,7 @@
     compareBuildTitle.textContent = "New comparison";
     renderChosen();
     showView("compare-build");
+    setPinnedTop();
   }
 
   // Extend the open comparison: seed the builder with its wines, in extend mode.
@@ -1722,6 +1732,7 @@
       producer: e.producer,
       cuvee: e.cuvee,
       vintage: e.vintage,
+      grape: e.grape || "",
       added_to_cellar_id: e.added_to_cellar_id || null,
     }));
     compareExtendTitle.textContent = currentComparison.title || "comparison";
@@ -1731,6 +1742,7 @@
     compareBuildTitle.textContent = "Add a wine";
     renderChosen();
     showView("compare-build");
+    setPinnedTop();
   }
 
   function extendMode() {
@@ -1794,8 +1806,8 @@
       b.addEventListener("click", () => {
         if (alreadyHasCellar(w.id)) return;
         compareEntries.push(compareEngine.entryFromCellarWine(w));
+        compareCellarPicker.hidden = true; // collapse back to the two buttons
         renderChosen();
-        renderCellarResults();
       });
       compareCellarResults.appendChild(b);
     });
@@ -1840,17 +1852,20 @@
   compareOutAddBtn.addEventListener("click", () => {
     const producer = compareOutProducer.value.trim();
     const cuvee = compareOutCuvee.value.trim();
+    const grape = compareOutGrape.value.trim();
     const vintage = compareOutVintage.value.trim();
     if (!producer && !cuvee) {
       compareOutProducer.focus();
       return;
     }
     compareEntries.push(
-      compareEngine.entryFromExternal({ producer, cuvee, vintage: vintage || null }),
+      compareEngine.entryFromExternal({ producer, cuvee, grape, vintage: vintage || null }),
     );
     compareOutProducer.value = "";
     compareOutCuvee.value = "";
+    compareOutGrape.value = "";
     compareOutVintage.value = "";
+    compareOutsideForm.hidden = true; // collapse back to the two buttons
     renderChosen();
   });
 
@@ -1882,11 +1897,18 @@
           known: wine ? compareEngine.cellarSeed(wine) : null,
         };
       }
-      return { producer: entry.producer, cuvee: entry.cuvee, vintage: entry.vintage, known: null };
+      return {
+        producer: entry.producer,
+        cuvee: entry.cuvee,
+        vintage: entry.vintage,
+        known: entry.grape ? { grape: entry.grape } : null,
+      };
     });
   }
 
-  function saveAndOpenComparison(dimsList) {
+  function saveAndOpenComparison(result) {
+    const dimsList = result.dims;
+    const summary = result.summary || "";
     const entries = compareEntries.map((e) => ({ ...e })); // detach from builder
     let cmp;
     if (compareExtendTarget && extendMode() === "build") {
@@ -1899,12 +1921,13 @@
         id: compareExtendTarget,
         created_at: existing.created_at || new Date().toISOString(),
         title: compareEngine.comparisonTitle(entries),
+        summary,
         updated_at: new Date().toISOString(),
         wines: entries,
       };
     } else {
       // New comparison (fresh, or "save as new" when extending).
-      cmp = compareEngine.createComparison(entries, dimsList);
+      cmp = compareEngine.createComparison(entries, dimsList, summary);
     }
     compareStore.save(cmp);
     compareEntries = [];
@@ -1929,19 +1952,19 @@
     const count = compareEntries.length;
     researchApi
       .runPrompt(prompt, { signal: controller.signal })
-      .then((result) => {
+      .then((apiResult) => {
         if (controller.signal.aborted) return;
         compareInFlight = null;
-        let dims;
+        let parsed;
         try {
-          dims = compareEngine.parseCompareResponse(result.text, count);
+          parsed = compareEngine.parseCompareResponse(apiResult.text, count);
         } catch (err) {
           compareFailMsg.textContent =
             "The comparison came back but couldn't be read. Try again, or use free compare.";
           showCompareRunView("fail");
           return;
         }
-        saveAndOpenComparison(dims);
+        saveAndOpenComparison(parsed);
       })
       .catch((err) => {
         if (controller.signal.aborted || (err && err.name === "AbortError")) return;
@@ -1980,15 +2003,15 @@
 
   compareManualReview.addEventListener("click", () => {
     compareManualError.hidden = true;
-    let dims;
+    let parsed;
     try {
-      dims = compareEngine.parseCompareResponse(comparePaste.value, compareEntries.length);
+      parsed = compareEngine.parseCompareResponse(comparePaste.value, compareEntries.length);
     } catch (err) {
       compareManualError.textContent = err.message;
       compareManualError.hidden = false;
       return;
     }
-    saveAndOpenComparison(dims);
+    saveAndOpenComparison(parsed);
   });
 
   // ---- Detail (swipeable cards) ----
@@ -2033,18 +2056,33 @@
     });
   }
 
-  // Build a catalogue stub from an external comparison entry: identity + the
-  // reputation note seeded into context, flagged as needing full research.
+  // Build a catalogue stub from an external comparison entry: populate the
+  // catalogue fields directly from the comparison's dims (simple populate now;
+  // full research later). Flagged needs_research.
   function stubWineFromEntry(entry) {
-    const rep = (entry.dims && entry.dims.reputation) || { value: "", confidence: "not_found" };
+    const d = entry.dims || {};
+    const val = (k) => (d[k] && d[k].value) || "";
+    const conf = (k) => d[k] && d[k].confidence;
     const partial = {
       producer: entry.producer || "",
       cuvee: entry.cuvee || "",
       vintage: entry.vintage || null,
-      expert_context: rep.value || "",
+      vinification: val("vinification"),
+      expert_context: val("reputation"),
+      tech_facts: {
+        grape_varietals: val("grape"),
+        terroir_type: val("terroir"),
+      },
+      tasting_notes: { notes: val("tasting") },
       needs_research: true,
     };
-    if (rep.value) partial.confidence_flags = { expert_context: rep.confidence };
+    const flags = {};
+    if (val("grape")) flags.grape_varietals = conf("grape");
+    if (val("terroir")) flags.terroir_type = conf("terroir");
+    if (val("vinification")) flags.vinification = conf("vinification");
+    if (val("tasting")) flags.tasting_notes = conf("tasting");
+    if (val("reputation")) flags.expert_context = conf("reputation");
+    partial.confidence_flags = flags;
     return createWine(partial);
   }
 
@@ -2084,6 +2122,21 @@
     compareDotsEl.innerHTML = "";
     const wines = cmp.wines || [];
     const cards = [];
+
+    // First card: high-level summary of the main differences.
+    if (cmp.summary) {
+      const card = document.createElement("article");
+      card.className = "compare-card compare-card--summary";
+      const title = document.createElement("p");
+      title.className = "compare-card-title";
+      title.textContent = "summary";
+      const val = document.createElement("p");
+      val.className = "compare-dim-value";
+      val.textContent = cmp.summary;
+      card.appendChild(title);
+      card.appendChild(val);
+      cards.push(card);
+    }
 
     // A wine's name line inside a card, with an optional confidence dot.
     function wineNameLine(entry, confidence) {

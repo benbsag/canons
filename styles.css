@@ -1556,6 +1556,15 @@ html[data-theme] .add-btn-large--secondary:hover {
   cursor: default;
 }
 
+/* Keep the chosen wines pinned below the sticky header while adding more. */
+.compare-pinned {
+  position: sticky;
+  top: 0; /* refined at runtime to sit just under the header */
+  z-index: 15;
+  background: var(--paper);
+  padding-bottom: var(--space-2);
+}
+
 .compare-build-hint {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1589,6 +1598,10 @@ html[data-theme] .add-btn-large--secondary:hover {
   border: 1px solid var(--hairline);
   border-radius: 6px;
   padding: var(--space-3);
+}
+
+.compare-card--summary {
+  border-color: var(--accent);
 }
 
 /* Per-dimension card: a title, then one block per wine. */

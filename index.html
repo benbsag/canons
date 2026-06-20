@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#f3ede1" />
     <meta name="color-scheme" content="light" />
     <title>CANONS</title>
@@ -131,8 +131,10 @@
           </label>
         </div>
 
-        <p class="section-label">wines</p>
-        <ul class="compare-chosen" id="compare-chosen"></ul>
+        <div class="compare-pinned" id="compare-pinned">
+          <p class="section-label">wines</p>
+          <ul class="compare-chosen" id="compare-chosen"></ul>
+        </div>
 
         <div class="compare-add-actions">
           <button type="button" class="backup-btn" id="compare-add-cellar-btn">add from cellar</button>
@@ -149,6 +151,7 @@
         <div class="compare-outside-form" id="compare-outside-form" hidden>
           <input type="text" class="sync-field" id="compare-out-producer" placeholder="producer" autocomplete="off" />
           <input type="text" class="sync-field" id="compare-out-cuvee" placeholder="cuvée" autocomplete="off" />
+          <input type="text" class="sync-field" id="compare-out-grape" placeholder="grape variety (optional)" autocomplete="off" />
           <input type="text" class="sync-field" id="compare-out-vintage" placeholder="vintage (or NV)" autocomplete="off" />
           <button type="button" class="backup-btn" id="compare-out-add-btn">add this wine</button>
         </div>

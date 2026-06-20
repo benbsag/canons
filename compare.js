@@ -75,6 +75,7 @@
       producer: p.producer || "",
       cuvee: p.cuvee || "",
       vintage: p.vintage || null,
+      grape: p.grape || "", // optional hint, used to seed the search
       added_to_cellar_id: null,
     };
   }
@@ -122,12 +123,13 @@
    * @param {Object[]} dimsList  aligned to entries by index
    * @param {string} [now] ISO (injectable for tests)
    */
-  function createComparison(entries, dimsList, now) {
+  function createComparison(entries, dimsList, summary, now) {
     const t = now || new Date().toISOString();
     attachDims(entries, dimsList);
     return {
       id: makeComparisonId(),
       title: comparisonTitle(entries),
+      summary: summary || "",
       created_at: t,
       updated_at: t,
       wines: entries,
@@ -170,6 +172,7 @@
     });
 
     const shape = {
+      summary: "1–2 punchy sentences naming the biggest differences across these wines",
       wines: [
         {
           producer: "echoed / corrected producer",
@@ -196,27 +199,31 @@
       "Wines (keep them in this exact order in your reply):",
       block.join("\n").trimEnd(),
       "",
-      "Compare across these dimensions, each written *relative to the other",
-      "wines in this set* (not as standalone notes):",
+      "For each wine, fill these five dimensions with that wine's OWN information,",
+      "stated directly so the wines can be read side by side:",
       "1. grape — grape variety / blend.",
       "2. terroir — region, soils, climate, site.",
       "3. vinification — how the wine is made.",
       "4. tasting — aromatic and palate profile, structure, style.",
-      "5. reputation — where it sits in the hierarchy, its status, rarity, how",
-      "   sought-after it is, and rough price/scarcity. This is the comparative",
-      "   heart of the task — be specific about how these wines rank against",
-      "   one another.",
+      "5. reputation — its own standing: where it sits in the hierarchy, status,",
+      "   rarity, how sought-after it is, and rough price/scarcity.",
+      "",
+      'Separately, write the top-level "summary": 1–2 punchy sentences naming the',
+      "main differences across the wines overall — this is where the comparison",
+      "lives.",
       "",
       "Rules:",
       "- Use only concrete, verifiable facts; never invent details.",
       "- Where 'known facts' are given for a wine, treat them as correct and do",
-      "  not re-derive them — focus on reputation and the relative comparison.",
+      "  not re-derive them — spend effort on reputation and the summary.",
       '- For every field include "confidence": "sourced" (found in a reliable',
       '  source), "inferred" (reasoned), or "not_found" (unknown). If not found,',
       '  still include the field with value "" and confidence "not_found".',
       "- Be punchy. Each value is a short phrase or a single tight sentence —",
-      "  comparative shorthand a sommelier would jot, not prose. Lead with what",
-      "  sets this wine apart from the others; cut filler and hedging.",
+      "  shorthand a sommelier would jot, not prose; cut filler and hedging.",
+      "- State each wine's own information in every field. NEVER refer to another",
+      '  wine (no "same as wine 1", "as above", "ditto") — repeat the actual',
+      "  detail even when two wines share it.",
       '- "sources" for each wine must be real URLs you actually consulted.',
       "- Return the wines in the SAME ORDER as listed above.",
       "",
@@ -233,7 +240,7 @@
    * Parse a combined comparison reply into a dims list aligned by index.
    * @param {string} text   raw assistant text (JSON, possibly fenced)
    * @param {number} [count] expected number of wines (pads/truncates to this)
-   * @returns {Object[]}  one dims object per wine
+   * @returns {{summary: string, dims: Object[]}}
    */
   function parseCompareResponse(text, count) {
     const raw = research.extractJsonObject(text);
@@ -246,16 +253,17 @@
       throw new Error("That doesn't look like the comparison JSON the request asked for.");
     }
     const n = typeof count === "number" && count > 0 ? count : arr.length;
-    const out = [];
+    const dims = [];
     for (let i = 0; i < n; i++) {
       const w = arr[i] || {};
-      const dims = { sources: research.normalizeSources(w.sources) };
+      const d = { sources: research.normalizeSources(w.sources) };
       for (const key of DIM_KEYS) {
-        dims[key] = research.normalizeField(w[key]);
+        d[key] = research.normalizeField(w[key]);
       }
-      out.push(dims);
+      dims.push(d);
     }
-    return out;
+    const summary = raw && typeof raw.summary === "string" ? raw.summary.trim() : "";
+    return { summary, dims };
   }
 
   window.WineCave.compare = {

@@ -357,5 +357,11 @@
     buildResearchPrompt,
     parseResearchResponse,
     applyResearchToWine,
+    // Low-level helpers shared with the comparison engine (compare.js) so the
+    // JSON-extraction, smart-quote repair and confidence handling stay in one
+    // place.
+    extractJsonObject,
+    normalizeField,
+    normalizeSources,
   };
 })();

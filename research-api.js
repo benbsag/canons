@@ -59,16 +59,20 @@
    * @param {Object} wine
    * @param {{signal?: AbortSignal}} [opts]
    */
-  async function fetchResearch(wine, opts) {
+  /**
+   * Low-level: send an arbitrary prompt to the edge function and return
+   * { text, usage, model }. Shared by research (single wine) and comparison
+   * (combined multi-wine prompt). Throws a friendly Error, or AbortError if
+   * cancelled via opts.signal.
+   */
+  async function runPrompt(prompt, opts) {
     opts = opts || {};
     const ep = resolveEndpoint();
     if (!ep) {
       throw new Error(
-        "Automated research isn't set up yet — link sync (it shares your Supabase project) or switch to manual research.",
+        "AI isn't set up yet — link sync (it shares your Supabase project) or use the free option.",
       );
     }
-
-    const prompt = WineCave.research.buildResearchPrompt(wine);
 
     const headers = { "Content-Type": "application/json" };
     if (ep.key) {
@@ -87,7 +91,7 @@
       });
     } catch (err) {
       if (err && err.name === "AbortError") throw err;
-      throw new Error("Couldn't reach the research service — check your connection.");
+      throw new Error("Couldn't reach the service — check your connection.");
     }
 
     let data = null;
@@ -98,14 +102,19 @@
     }
 
     if (!res.ok) {
-      const msg = (data && data.error) || `Research failed (${res.status}).`;
+      const msg = (data && data.error) || `Request failed (${res.status}).`;
       throw new Error(msg);
     }
     if (!data || typeof data.text !== "string" || !data.text.trim()) {
-      throw new Error("The research service returned an empty result.");
+      throw new Error("The service returned an empty result.");
     }
     return data; // { text, usage, model }
   }
 
-  WineCave.researchApi = { isConfigured, resolveEndpoint, fetchResearch };
+  /** Research a single wine — builds the research prompt and runs it. */
+  async function fetchResearch(wine, opts) {
+    return runPrompt(WineCave.research.buildResearchPrompt(wine), opts);
+  }
+
+  WineCave.researchApi = { isConfigured, resolveEndpoint, runPrompt, fetchResearch };
 })();

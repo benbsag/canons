@@ -15,6 +15,7 @@ const SHELL_FILES = [
   "./research.js",
   "./research-api.js",
   "./compare.js",
+  "./compare-store.js",
   "./storage.js",
   "./sync.js",
   "./manifest.webmanifest",

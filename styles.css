@@ -1404,6 +1404,267 @@ textarea.autogrow {
   font-weight: 700;
 }
 
+/* ---------------------------------------------------------------------- */
+/* Compare module                                                          */
+/* ---------------------------------------------------------------------- */
+
+/* Home: stack the two CTAs; make compare a secondary (outlined) button. */
+.actions {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.add-btn-large--secondary,
+html[data-theme] .add-btn-large--secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+}
+
+.add-btn-large--secondary:hover,
+html[data-theme] .add-btn-large--secondary:hover {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+  opacity: 1;
+}
+
+.add-btn-large--secondary .glyph {
+  color: inherit;
+}
+
+/* Saved comparisons list */
+.compare-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-3) 0;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.compare-row-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  margin: 0;
+}
+
+.compare-row-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.compare-empty {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--muted);
+  margin-top: var(--space-5);
+}
+
+/* Builder: chosen wines */
+.compare-chosen {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-3);
+}
+
+.compare-chosen-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.compare-chosen-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.compare-chosen-src {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.compare-chosen-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.compare-chosen-remove:hover {
+  color: var(--accent);
+}
+
+.compare-add-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.compare-cellar-picker,
+.compare-outside-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.compare-cellar-results {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+}
+
+.compare-pick-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.compare-pick-row:last-child {
+  border-bottom: none;
+}
+
+.compare-pick-row:hover {
+  background: rgba(28, 26, 23, 0.03);
+}
+
+.compare-pick-row[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.compare-build-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin: var(--space-3) 0;
+}
+
+.compare-run {
+  margin-top: var(--space-3);
+}
+
+/* Detail: swipeable result cards */
+.compare-cards {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: var(--space-2);
+}
+
+.compare-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.compare-card {
+  flex: 0 0 100%;
+  box-sizing: border-box;
+  scroll-snap-align: center;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: var(--space-3);
+}
+
+.compare-card-name {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  margin: 0;
+}
+
+.compare-card-vintage {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin: 2px 0 var(--space-3);
+}
+
+.compare-card-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.compare-dim {
+  margin-bottom: var(--space-3);
+}
+
+.compare-dim-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  color: var(--muted);
+  margin: 0 0 2px;
+}
+
+.compare-dim-value {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.compare-card-sources {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--hairline);
+}
+
+.compare-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: var(--space-3);
+}
+
+.compare-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hairline);
+}
+
+.compare-dot.is-active {
+  background: var(--accent);
+}
+
 /* Working / loading state */
 .research-loading {
   display: flex;

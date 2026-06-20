@@ -55,6 +55,9 @@
             <button class="add-btn-large" type="button" id="add-wine-btn">
               <span class="glyph">+</span> add wine
             </button>
+            <button class="add-btn-large add-btn-large--secondary" type="button" id="compare-btn">
+              <span class="glyph">⇄</span> compare wines
+            </button>
           </div>
         </header>
 
@@ -92,6 +95,115 @@
             <button type="submit" class="save-btn">save</button>
           </div>
         </form>
+      </section>
+
+      <!-- ================= COMPARE: saved list ================= -->
+      <section id="view-compare" class="view" hidden>
+        <header class="view-header">
+          <button class="action-link" type="button" id="compare-back-btn">‹ back</button>
+          <p class="brand">Compare</p>
+        </header>
+        <div class="actions">
+          <button class="add-btn-large" type="button" id="compare-new-btn">
+            <span class="glyph">+</span> new comparison
+          </button>
+        </div>
+        <main id="compare-list"></main>
+      </section>
+
+      <!-- ================= COMPARE: builder ================= -->
+      <section id="view-compare-build" class="view" hidden>
+        <header class="view-header">
+          <button class="action-link" type="button" id="compare-build-back-btn">‹ back</button>
+          <p class="brand">New comparison</p>
+        </header>
+
+        <p class="section-label">wines</p>
+        <ul class="compare-chosen" id="compare-chosen"></ul>
+
+        <div class="compare-add-actions">
+          <button type="button" class="backup-btn" id="compare-add-cellar-btn">add from cellar</button>
+          <button type="button" class="backup-btn" id="compare-add-outside-btn">add outside wine</button>
+        </div>
+
+        <!-- cellar picker -->
+        <div class="compare-cellar-picker" id="compare-cellar-picker" hidden>
+          <input type="search" class="filter-input" id="compare-cellar-search" placeholder="search your cellar…" autocomplete="off" />
+          <div class="compare-cellar-results" id="compare-cellar-results"></div>
+        </div>
+
+        <!-- outside-wine mini form -->
+        <div class="compare-outside-form" id="compare-outside-form" hidden>
+          <input type="text" class="sync-field" id="compare-out-producer" placeholder="producer" autocomplete="off" />
+          <input type="text" class="sync-field" id="compare-out-cuvee" placeholder="cuvée" autocomplete="off" />
+          <input type="text" class="sync-field" id="compare-out-vintage" placeholder="vintage (or NV)" autocomplete="off" />
+          <button type="button" class="backup-btn" id="compare-out-add-btn">add this wine</button>
+        </div>
+
+        <p class="compare-build-hint" id="compare-build-hint">add at least 2 wines to compare.</p>
+
+        <!-- run: chooser / loading / fail / free-paste (reuses research styles) -->
+        <div class="research-panel compare-run" id="compare-run" hidden>
+          <div class="research-chooser" id="compare-chooser">
+            <p class="research-chooser-q">how would you like to run this comparison?</p>
+            <div class="research-chooser-actions">
+              <button type="button" class="research-choose-ai" id="compare-choose-ai">AI compare</button>
+              <button type="button" class="research-choose-free" id="compare-choose-free">free compare</button>
+            </div>
+            <p class="research-chooser-note">
+              <strong>AI</strong> compares all the wines in one web-backed pass
+              (costs a few cents). <strong>Free</strong> gives you a prompt to
+              paste into any chatbot yourself.
+            </p>
+          </div>
+
+          <div class="research-loading" id="compare-loading" hidden>
+            <span class="research-spinner" aria-hidden="true"></span>
+            <p class="research-loading-text">comparing… this can take 10–30 seconds.</p>
+            <div class="research-actions">
+              <button type="button" class="research-loading-cancel" id="compare-loading-cancel">cancel</button>
+            </div>
+          </div>
+
+          <div class="research-fail" id="compare-fail" hidden>
+            <p class="research-error compare-fail-msg" id="compare-fail-msg"></p>
+            <div class="research-actions research-actions--end">
+              <button type="button" class="action-link" id="compare-fail-free">free instead</button>
+              <button type="button" class="action-link action-link--quiet" id="compare-fail-cancel">cancel</button>
+              <button type="button" class="save-btn" id="compare-retry-btn">retry</button>
+            </div>
+          </div>
+
+          <div class="research-input" id="compare-manual" hidden>
+            <p class="research-help">
+              Tap <strong>copy request</strong>, paste it into Claude or ChatGPT,
+              then paste the reply back and tap <strong>view comparison</strong>.
+            </p>
+            <div class="research-actions research-actions--start">
+              <button type="button" class="action-link" id="compare-copy-btn">
+                <span class="glyph">⧉</span> copy request
+              </button>
+              <span class="research-status" id="compare-copy-status"></span>
+            </div>
+            <textarea class="research-paste" id="compare-paste" rows="4" placeholder="paste the assistant's reply here…" autocomplete="off" spellcheck="false"></textarea>
+            <p class="research-error" id="compare-manual-error" hidden></p>
+            <div class="research-actions">
+              <button type="button" class="action-link action-link--quiet" id="compare-manual-cancel">cancel</button>
+              <button type="button" class="save-btn" id="compare-manual-review">view comparison</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= COMPARE: detail (swipeable cards) ================= -->
+      <section id="view-compare-detail" class="view" hidden>
+        <header class="view-header">
+          <button class="action-link" type="button" id="compare-detail-back-btn">‹ back</button>
+          <button class="action-link action-link--quiet" type="button" id="compare-delete-btn">delete</button>
+        </header>
+        <p class="meta-line" id="compare-detail-title"></p>
+        <div class="compare-cards" id="compare-cards"></div>
+        <div class="compare-dots" id="compare-dots" aria-hidden="true"></div>
       </section>
 
       <!-- ================= SETTINGS ================= -->
@@ -413,6 +525,7 @@
     <script src="./storage.js"></script>
     <script src="./research.js"></script>
     <script src="./compare.js"></script>
+    <script src="./compare-store.js"></script>
     <script src="./sync.js"></script>
     <script src="./research-api.js"></script>
     <script src="./app.js"></script>

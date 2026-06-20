@@ -159,6 +159,9 @@
   const viewHome = document.getElementById("view-home");
   const viewAdd = document.getElementById("view-add");
   const viewDetail = document.getElementById("view-detail");
+  const viewCompare = document.getElementById("view-compare");
+  const viewCompareBuild = document.getElementById("view-compare-build");
+  const viewCompareDetail = document.getElementById("view-compare-detail");
 
   const addWineBtn = document.getElementById("add-wine-btn");
   const addBackBtn = document.getElementById("add-back-btn");
@@ -446,6 +449,9 @@
     viewHome.hidden = name !== "home";
     viewAdd.hidden = name !== "add";
     viewDetail.hidden = name !== "detail";
+    viewCompare.hidden = name !== "compare";
+    viewCompareBuild.hidden = name !== "compare-build";
+    viewCompareDetail.hidden = name !== "compare-detail";
     window.scrollTo(0, 0);
   }
 
@@ -1557,6 +1563,473 @@
   // it on the phone), and once on boot.
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) sync.scheduleSync(300);
+  });
+
+  // -------------------------------------------------------------------
+  // Compare module (Stage 2: run + results UI)
+  // -------------------------------------------------------------------
+
+  const compareEngine = window.WineCave.compare;
+  const compareStore = window.WineCave.compareStore;
+
+  const compareBtn = document.getElementById("compare-btn");
+  const compareBackBtn = document.getElementById("compare-back-btn");
+  const compareNewBtn = document.getElementById("compare-new-btn");
+  const compareListEl = document.getElementById("compare-list");
+
+  const compareBuildBackBtn = document.getElementById("compare-build-back-btn");
+  const compareChosenEl = document.getElementById("compare-chosen");
+  const compareAddCellarBtn = document.getElementById("compare-add-cellar-btn");
+  const compareAddOutsideBtn = document.getElementById("compare-add-outside-btn");
+  const compareCellarPicker = document.getElementById("compare-cellar-picker");
+  const compareCellarSearch = document.getElementById("compare-cellar-search");
+  const compareCellarResults = document.getElementById("compare-cellar-results");
+  const compareOutsideForm = document.getElementById("compare-outside-form");
+  const compareOutProducer = document.getElementById("compare-out-producer");
+  const compareOutCuvee = document.getElementById("compare-out-cuvee");
+  const compareOutVintage = document.getElementById("compare-out-vintage");
+  const compareOutAddBtn = document.getElementById("compare-out-add-btn");
+  const compareBuildHint = document.getElementById("compare-build-hint");
+
+  const compareRun = document.getElementById("compare-run");
+  const compareChooser = document.getElementById("compare-chooser");
+  const compareChooseAi = document.getElementById("compare-choose-ai");
+  const compareChooseFree = document.getElementById("compare-choose-free");
+  const compareLoading = document.getElementById("compare-loading");
+  const compareLoadingCancel = document.getElementById("compare-loading-cancel");
+  const compareFail = document.getElementById("compare-fail");
+  const compareFailMsg = document.getElementById("compare-fail-msg");
+  const compareFailFree = document.getElementById("compare-fail-free");
+  const compareFailCancel = document.getElementById("compare-fail-cancel");
+  const compareRetryBtn = document.getElementById("compare-retry-btn");
+  const compareManual = document.getElementById("compare-manual");
+  const compareCopyBtn = document.getElementById("compare-copy-btn");
+  const compareCopyStatus = document.getElementById("compare-copy-status");
+  const comparePaste = document.getElementById("compare-paste");
+  const compareManualError = document.getElementById("compare-manual-error");
+  const compareManualCancel = document.getElementById("compare-manual-cancel");
+  const compareManualReview = document.getElementById("compare-manual-review");
+
+  const compareCardsEl = document.getElementById("compare-cards");
+  const compareDotsEl = document.getElementById("compare-dots");
+  const compareDetailTitle = document.getElementById("compare-detail-title");
+  const compareDetailBackBtn = document.getElementById("compare-detail-back-btn");
+  const compareDeleteBtn = document.getElementById("compare-delete-btn");
+
+  let compareEntries = []; // entries being built
+  let compareInFlight = null; // AbortController for an active run
+  let currentComparisonId = null;
+  let compareDeleteArmed = false;
+  let compareDeleteTimer = null;
+
+  function compareEntryLabel(entry) {
+    const name = [entry.producer, entry.cuvee].filter(Boolean).join(" — ") || "unknown wine";
+    return entry.vintage ? `${name} (${entry.vintage})` : name;
+  }
+
+  // ---- Saved list ----
+  function openCompareList() {
+    abortCompare();
+    renderCompareList();
+    showView("compare");
+  }
+
+  function renderCompareList() {
+    const items = compareStore.list();
+    compareListEl.innerHTML = "";
+    if (!items.length) {
+      const p = document.createElement("p");
+      p.className = "compare-empty";
+      p.textContent = "No comparisons yet. Start one to compare wines side by side.";
+      compareListEl.appendChild(p);
+      return;
+    }
+    for (const c of items) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "compare-row";
+      const title = document.createElement("p");
+      title.className = "compare-row-title";
+      title.textContent = c.title || "comparison";
+      const meta = document.createElement("p");
+      meta.className = "compare-row-meta";
+      const n = (c.wines || []).length;
+      meta.textContent = `${n} wine${n === 1 ? "" : "s"} · ${formatDate(c.updated_at)}`;
+      row.appendChild(title);
+      row.appendChild(meta);
+      row.addEventListener("click", () => openComparison(c.id));
+      compareListEl.appendChild(row);
+    }
+  }
+
+  // ---- Builder ----
+  function startNewComparison() {
+    abortCompare();
+    compareEntries = [];
+    comparePaste.value = "";
+    compareManualError.hidden = true;
+    compareCellarPicker.hidden = true;
+    compareOutsideForm.hidden = true;
+    renderChosen();
+    showView("compare-build");
+  }
+
+  function renderChosen() {
+    compareChosenEl.innerHTML = "";
+    compareEntries.forEach((entry, i) => {
+      const li = document.createElement("li");
+      li.className = "compare-chosen-item";
+      const span = document.createElement("span");
+      span.className = "compare-chosen-name";
+      span.textContent = compareEntryLabel(entry);
+      const src = document.createElement("span");
+      src.className = "compare-chosen-src";
+      src.textContent = entry.source === "cellar" ? "  · in cellar" : "  · outside";
+      span.appendChild(src);
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "compare-chosen-remove";
+      rm.textContent = "×";
+      rm.setAttribute("aria-label", "Remove");
+      rm.addEventListener("click", () => {
+        compareEntries.splice(i, 1);
+        renderChosen();
+      });
+      li.appendChild(span);
+      li.appendChild(rm);
+      compareChosenEl.appendChild(li);
+    });
+
+    const ready = compareEntries.length >= 2;
+    compareRun.hidden = !ready;
+    compareBuildHint.hidden = ready;
+    if (ready) showCompareRunView("chooser");
+  }
+
+  function alreadyHasCellar(wineId) {
+    return compareEntries.some((e) => e.source === "cellar" && e.wine_id === wineId);
+  }
+
+  function renderCellarResults() {
+    const q = compareCellarSearch.value.trim().toLowerCase();
+    const wines = getAllWines().filter((w) => {
+      if (!q) return true;
+      return [w.producer, w.cuvee, w.vintage].filter(Boolean).join(" ").toLowerCase().includes(q);
+    });
+    compareCellarResults.innerHTML = "";
+    wines.slice(0, 50).forEach((w) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "compare-pick-row";
+      const label = [w.producer, w.cuvee].filter(Boolean).join(" — ") || "(untitled)";
+      b.textContent = w.vintage ? `${label} (${w.vintage})` : label;
+      if (alreadyHasCellar(w.id)) {
+        b.disabled = true;
+        b.textContent += "  ✓";
+      }
+      b.addEventListener("click", () => {
+        if (alreadyHasCellar(w.id)) return;
+        compareEntries.push(compareEngine.entryFromCellarWine(w));
+        renderChosen();
+        renderCellarResults();
+      });
+      compareCellarResults.appendChild(b);
+    });
+    if (!wines.length) {
+      const p = document.createElement("p");
+      p.className = "compare-build-hint";
+      p.textContent = "no matches";
+      compareCellarResults.appendChild(p);
+    }
+  }
+
+  compareBtn.addEventListener("click", openCompareList);
+  compareBackBtn.addEventListener("click", () => showView("home"));
+  compareNewBtn.addEventListener("click", startNewComparison);
+  compareBuildBackBtn.addEventListener("click", () => {
+    abortCompare();
+    openCompareList();
+  });
+
+  compareAddCellarBtn.addEventListener("click", () => {
+    compareOutsideForm.hidden = true;
+    compareCellarPicker.hidden = !compareCellarPicker.hidden;
+    if (!compareCellarPicker.hidden) {
+      compareCellarSearch.value = "";
+      renderCellarResults();
+      compareCellarSearch.focus();
+    }
+  });
+  compareCellarSearch.addEventListener("input", renderCellarResults);
+
+  compareAddOutsideBtn.addEventListener("click", () => {
+    compareCellarPicker.hidden = true;
+    compareOutsideForm.hidden = !compareOutsideForm.hidden;
+    if (!compareOutsideForm.hidden) compareOutProducer.focus();
+  });
+  compareOutAddBtn.addEventListener("click", () => {
+    const producer = compareOutProducer.value.trim();
+    const cuvee = compareOutCuvee.value.trim();
+    const vintage = compareOutVintage.value.trim();
+    if (!producer && !cuvee) {
+      compareOutProducer.focus();
+      return;
+    }
+    compareEntries.push(
+      compareEngine.entryFromExternal({ producer, cuvee, vintage: vintage || null }),
+    );
+    compareOutProducer.value = "";
+    compareOutCuvee.value = "";
+    compareOutVintage.value = "";
+    renderChosen();
+  });
+
+  // ---- Run (AI / free) ----
+  function showCompareRunView(name) {
+    compareChooser.hidden = name !== "chooser";
+    compareLoading.hidden = name !== "loading";
+    compareFail.hidden = name !== "fail";
+    compareManual.hidden = name !== "manual";
+  }
+
+  function abortCompare() {
+    if (compareInFlight) {
+      compareInFlight.abort();
+      compareInFlight = null;
+    }
+  }
+
+  // Resolve build entries → prompt items (seed cellar wines from catalogue).
+  function compareItems() {
+    const all = getAllWines();
+    return compareEntries.map((entry) => {
+      if (entry.source === "cellar") {
+        const wine = all.find((w) => w.id === entry.wine_id);
+        return {
+          producer: entry.producer,
+          cuvee: entry.cuvee,
+          vintage: entry.vintage,
+          known: wine ? compareEngine.cellarSeed(wine) : null,
+        };
+      }
+      return { producer: entry.producer, cuvee: entry.cuvee, vintage: entry.vintage, known: null };
+    });
+  }
+
+  function saveAndOpenComparison(dimsList) {
+    const entries = compareEntries.map((e) => ({ ...e })); // detach from builder
+    const cmp = compareEngine.createComparison(entries, dimsList);
+    compareStore.save(cmp);
+    compareEntries = [];
+    openComparison(cmp.id);
+  }
+
+  function startCompareAuto() {
+    if (compareEntries.length < 2) return;
+    if (!researchApi.isConfigured()) {
+      compareFailMsg.textContent =
+        "AI isn't set up yet — link sync (it shares your Supabase project), or use free compare.";
+      showCompareRunView("fail");
+      return;
+    }
+    abortCompare();
+    const controller = new AbortController();
+    compareInFlight = controller;
+    showCompareRunView("loading");
+    const prompt = compareEngine.buildComparePrompt(compareItems());
+    const count = compareEntries.length;
+    researchApi
+      .runPrompt(prompt, { signal: controller.signal })
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        compareInFlight = null;
+        let dims;
+        try {
+          dims = compareEngine.parseCompareResponse(result.text, count);
+        } catch (err) {
+          compareFailMsg.textContent =
+            "The comparison came back but couldn't be read. Try again, or use free compare.";
+          showCompareRunView("fail");
+          return;
+        }
+        saveAndOpenComparison(dims);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted || (err && err.name === "AbortError")) return;
+        compareInFlight = null;
+        compareFailMsg.textContent = (err && err.message) || "Comparison failed. Try again.";
+        showCompareRunView("fail");
+      });
+  }
+
+  function showCompareManual() {
+    abortCompare();
+    compareManualError.hidden = true;
+    showCompareRunView("manual");
+  }
+
+  compareChooseAi.addEventListener("click", startCompareAuto);
+  compareChooseFree.addEventListener("click", showCompareManual);
+  compareLoadingCancel.addEventListener("click", () => {
+    abortCompare();
+    showCompareRunView("chooser");
+  });
+  compareFailCancel.addEventListener("click", () => showCompareRunView("chooser"));
+  compareFailFree.addEventListener("click", showCompareManual);
+  compareRetryBtn.addEventListener("click", startCompareAuto);
+  compareManualCancel.addEventListener("click", () => showCompareRunView("chooser"));
+
+  compareCopyBtn.addEventListener("click", () => {
+    if (compareEntries.length < 2) return;
+    copyText(compareEngine.buildComparePrompt(compareItems())).then((ok) => {
+      compareCopyStatus.textContent = ok ? "copied" : "couldn't copy — select the text manually";
+      setTimeout(() => {
+        compareCopyStatus.textContent = "";
+      }, 2500);
+    });
+  });
+
+  compareManualReview.addEventListener("click", () => {
+    compareManualError.hidden = true;
+    let dims;
+    try {
+      dims = compareEngine.parseCompareResponse(comparePaste.value, compareEntries.length);
+    } catch (err) {
+      compareManualError.textContent = err.message;
+      compareManualError.hidden = false;
+      return;
+    }
+    saveAndOpenComparison(dims);
+  });
+
+  // ---- Detail (swipeable cards) ----
+  function openComparison(id) {
+    const cmp = compareStore.get(id);
+    if (!cmp) {
+      openCompareList();
+      return;
+    }
+    currentComparisonId = id;
+    compareDeleteArmed = false;
+    compareDeleteBtn.textContent = "delete";
+    compareDetailTitle.textContent = cmp.title || "comparison";
+    renderCompareCards(cmp);
+    showView("compare-detail");
+  }
+
+  function renderCompareCards(cmp) {
+    compareCardsEl.innerHTML = "";
+    compareDotsEl.innerHTML = "";
+    const wines = cmp.wines || [];
+    wines.forEach((entry) => {
+      const card = document.createElement("article");
+      card.className = "compare-card";
+
+      const name = document.createElement("p");
+      name.className = "compare-card-name";
+      name.textContent = [entry.producer, entry.cuvee].filter(Boolean).join(" — ") || "unknown wine";
+      if (entry.source === "cellar" || entry.added_to_cellar_id) {
+        const badge = document.createElement("span");
+        badge.className = "compare-card-badge";
+        badge.textContent = "in cellar";
+        name.appendChild(badge);
+      }
+      card.appendChild(name);
+
+      const vint = document.createElement("p");
+      vint.className = "compare-card-vintage";
+      vint.textContent = entry.vintage || "NV";
+      card.appendChild(vint);
+
+      const dims = entry.dims || compareEngine.emptyDims();
+      for (const d of compareEngine.COMPARE_DIMENSIONS) {
+        const field = dims[d.key] || { value: "", confidence: "not_found" };
+        const wrap = document.createElement("div");
+        wrap.className = "compare-dim";
+        const label = document.createElement("p");
+        label.className = "compare-dim-label";
+        const dot = document.createElement("span");
+        dot.className = "confidence-dot";
+        dot.dataset.confidence = field.confidence;
+        dot.title = CONFIDENCE_TITLES[field.confidence] || field.confidence;
+        label.appendChild(dot);
+        label.appendChild(document.createTextNode(d.label));
+        const val = document.createElement("p");
+        val.className = "compare-dim-value";
+        val.textContent = field.value || "—";
+        wrap.appendChild(label);
+        wrap.appendChild(val);
+        card.appendChild(wrap);
+      }
+
+      const sources = dims.sources || [];
+      if (sources.length) {
+        const swrap = document.createElement("div");
+        swrap.className = "compare-card-sources";
+        const slabel = document.createElement("p");
+        slabel.className = "compare-dim-label";
+        slabel.textContent = "sources";
+        swrap.appendChild(slabel);
+        const ul = document.createElement("ul");
+        ul.className = "sources-list";
+        sources.forEach((url) => {
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+          li.appendChild(a);
+          ul.appendChild(li);
+        });
+        swrap.appendChild(ul);
+        card.appendChild(swrap);
+      }
+
+      compareCardsEl.appendChild(card);
+    });
+
+    if (wines.length > 1) {
+      wines.forEach((_, i) => {
+        const dot = document.createElement("span");
+        dot.className = "compare-dot" + (i === 0 ? " is-active" : "");
+        compareDotsEl.appendChild(dot);
+      });
+    }
+    compareCardsEl.scrollLeft = 0;
+  }
+
+  // Update the active position dot as the user swipes.
+  compareCardsEl.addEventListener("scroll", () => {
+    const dots = compareDotsEl.children;
+    if (!dots.length) return;
+    const w = compareCardsEl.clientWidth || 1;
+    const i = Math.round(compareCardsEl.scrollLeft / w);
+    for (let k = 0; k < dots.length; k++) {
+      dots[k].classList.toggle("is-active", k === i);
+    }
+  });
+
+  compareDetailBackBtn.addEventListener("click", openCompareList);
+  compareDeleteBtn.addEventListener("click", () => {
+    if (!currentComparisonId) return;
+    // Two-tap confirm (native confirm() is unreliable in an installed PWA, and
+    // the inline sync confirm lives in the hidden settings sheet).
+    if (!compareDeleteArmed) {
+      compareDeleteArmed = true;
+      compareDeleteBtn.textContent = "tap again to delete";
+      compareDeleteTimer = setTimeout(() => {
+        compareDeleteArmed = false;
+        compareDeleteBtn.textContent = "delete";
+      }, 3000);
+      return;
+    }
+    clearTimeout(compareDeleteTimer);
+    compareDeleteArmed = false;
+    compareDeleteBtn.textContent = "delete";
+    compareStore.remove(currentComparisonId);
+    currentComparisonId = null;
+    openCompareList();
   });
 
   // -------------------------------------------------------------------

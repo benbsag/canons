@@ -171,6 +171,7 @@
   const detailBackBtn = document.getElementById("detail-back-btn");
   const detailDeleteBtn = document.getElementById("detail-delete-btn");
   const detailForm = document.getElementById("detail-form");
+  const detailSaveTop = document.getElementById("detail-save-top");
   const detailFieldsContainer = document.getElementById("detail-fields");
   const detailMetaEl = document.getElementById("detail-meta");
   const detailSaveStatusEl = document.getElementById("detail-save-status");
@@ -819,10 +820,23 @@
 
     renderDetailMeta();
     detailSaveStatusEl.textContent = "";
+    detailSaveTop.hidden = true; // only appears once an edit is made
     showView("detail");
     autoGrowAll(detailRefs);
     applyRainbow(detailFieldsContainer);
   }
+
+  // Reveal the top save button as soon as a field is edited (status taps and
+  // the research panel don't count — those save on their own).
+  detailFieldsContainer.addEventListener("input", (e) => {
+    if (e.target.closest(".research-launch")) return;
+    detailSaveTop.hidden = false;
+  });
+
+  detailSaveTop.addEventListener("click", () => {
+    if (typeof detailForm.requestSubmit === "function") detailForm.requestSubmit();
+    else detailForm.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+  });
 
   detailBackBtn.addEventListener("click", () => {
     showView("home");
@@ -858,6 +872,7 @@
     currentWine = readFieldsIntoWine(detailRefs, currentWine, currentWine.status);
     saveWine(currentWine);
     sync.scheduleSync();
+    detailSaveTop.hidden = true;
 
     // Save & close: fold the changes in, then return to the cellar.
     if (detailResearch) detailResearch.close();

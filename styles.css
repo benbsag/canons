@@ -956,6 +956,27 @@ html[data-theme^="swiss"] .brand-row .brand {
   margin: 0;
 }
 
+/* Prominent save button in the detail header — appears only after an edit.
+   Sits centered between the back and remove links (flex space-between). */
+.detail-save-top {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--paper);
+  background: var(--accent);
+  border: none;
+  border-radius: 3px;
+  padding: 7px 22px;
+  cursor: pointer;
+}
+
+.detail-save-top:hover {
+  opacity: 0.9;
+}
+
 .action-link--quiet {
   color: var(--muted);
   font-size: 12px;

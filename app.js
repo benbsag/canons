@@ -1701,6 +1701,8 @@
     comparePaste.value = "";
     compareManualError.hidden = true;
     compareCellarPicker.hidden = true;
+    compareCellarSearch.value = "";
+    compareCellarResults.innerHTML = "";
     compareOutsideForm.hidden = true;
   }
 
@@ -1786,13 +1788,26 @@
     return compareEntries.some((e) => e.source === "cellar" && e.wine_id === wineId);
   }
 
+  // Search-first: nothing shows until you type, then matches appear. Uses the
+  // same rich field search as the cellar (producer, region, grape, etc.).
   function renderCellarResults() {
-    const q = compareCellarSearch.value.trim().toLowerCase();
-    const wines = getAllWines().filter((w) => {
-      if (!q) return true;
-      return [w.producer, w.cuvee, w.vintage].filter(Boolean).join(" ").toLowerCase().includes(q);
-    });
+    const q = compareCellarSearch.value.trim();
     compareCellarResults.innerHTML = "";
+    if (!q) {
+      const p = document.createElement("p");
+      p.className = "compare-build-hint";
+      p.textContent = "type to search — producer, region, grape…";
+      compareCellarResults.appendChild(p);
+      return;
+    }
+    const wines = filterWines(getAllWines(), q);
+    if (!wines.length) {
+      const p = document.createElement("p");
+      p.className = "compare-build-hint";
+      p.textContent = "no matches";
+      compareCellarResults.appendChild(p);
+      return;
+    }
     wines.slice(0, 50).forEach((w) => {
       const b = document.createElement("button");
       b.type = "button";
@@ -1806,17 +1821,14 @@
       b.addEventListener("click", () => {
         if (alreadyHasCellar(w.id)) return;
         compareEntries.push(compareEngine.entryFromCellarWine(w));
-        compareCellarPicker.hidden = true; // collapse back to the two buttons
+        // Collapse the whole picker back to the two buttons + clear it.
+        compareCellarPicker.hidden = true;
+        compareCellarSearch.value = "";
+        compareCellarResults.innerHTML = "";
         renderChosen();
       });
       compareCellarResults.appendChild(b);
     });
-    if (!wines.length) {
-      const p = document.createElement("p");
-      p.className = "compare-build-hint";
-      p.textContent = "no matches";
-      compareCellarResults.appendChild(p);
-    }
   }
 
   compareBtn.addEventListener("click", openCompareList);
@@ -2029,6 +2041,13 @@
     renderCompareCards(cmp);
     renderPromote(cmp);
     showView("compare-detail");
+    // Reset to the first card once visible — setting scrollLeft while the view
+    // is still display:none doesn't take, which left it on the last card.
+    requestAnimationFrame(() => {
+      compareCardsEl.scrollLeft = 0;
+      const dots = compareDotsEl.children;
+      for (let k = 0; k < dots.length; k++) dots[k].classList.toggle("is-active", k === 0);
+    });
   }
 
   // List external wines not yet added to the cellar, with checkboxes for bulk

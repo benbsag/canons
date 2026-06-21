@@ -658,7 +658,10 @@
       return;
     }
 
-    for (const [region, wines] of groupByRegion(visible)) {
+    const active = visible.filter((w) => w.status !== STATUS.AUSGETRUNKEN);
+    const finished = visible.filter((w) => w.status === STATUS.AUSGETRUNKEN);
+
+    for (const [region, wines] of groupByRegion(active)) {
       const group = document.createElement("div");
       group.className = "region-group";
 
@@ -676,6 +679,33 @@
 
       listEl.appendChild(group);
     }
+
+    if (finished.length > 0) {
+      const doneHeader = document.createElement("p");
+      doneHeader.className = "section-label section-label--doneburger";
+      doneHeader.textContent = "doneburger";
+      listEl.appendChild(doneHeader);
+
+      for (const [region, wines] of groupByRegion(finished)) {
+        const group = document.createElement("div");
+        group.className = "region-group";
+
+        const label = document.createElement("p");
+        label.className = "region-label";
+        label.textContent = region;
+        group.appendChild(label);
+
+        const ul = document.createElement("ul");
+        ul.className = "wine-list";
+        for (const wine of wines) {
+          ul.appendChild(renderWineEntry(wine));
+        }
+        group.appendChild(ul);
+
+        listEl.appendChild(group);
+      }
+    }
+
     applyRainbow(listEl);
   }
 

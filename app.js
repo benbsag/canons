@@ -901,18 +901,28 @@
 
     try {
       const fnUrl = `${syncConfig.url}/functions/v1/share-wine`;
-      const res = await fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${syncConfig.key}`,
-          apikey: syncConfig.key,
-        },
-        body: JSON.stringify({ data: shareData }),
-      });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const { id } = await res.json();
+      let res;
+      try {
+        res = await fetch(fnUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${syncConfig.key}`,
+            apikey: syncConfig.key,
+          },
+          body: JSON.stringify({ data: shareData }),
+        });
+      } catch (networkErr) {
+        throw new Error(`Network error — couldn't reach ${fnUrl}. Is the function deployed?`);
+      }
 
+      if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.json()).error || ""; } catch { /* non-JSON */ }
+        throw new Error(`Function returned ${res.status}${detail ? ": " + detail : ""}. Check SHARE_SETUP.md.`);
+      }
+
+      const { id } = await res.json();
       const base = location.href.replace(/\/[^/]*([?#].*)?$/, "/");
       const url = `${base}share.html?id=${id}&s=${encodeURIComponent(syncConfig.url)}`;
 
@@ -920,8 +930,9 @@
       detailShareBtn.textContent = "copied!";
       setTimeout(() => { detailShareBtn.textContent = prev; }, 2000);
     } catch (err) {
+      console.error("[share]", err);
       detailShareBtn.textContent = prev;
-      alert("Couldn't create share link — check your sync connection.");
+      alert("Couldn't create share link:\n\n" + err.message);
     }
   });
 

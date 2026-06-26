@@ -84,6 +84,17 @@
     document.documentElement.dataset.theme = id;
   }
 
+  // One-time migration: move existing users from the old default (paper) to
+  // the new default (klein). Runs once, then the flag prevents it running again
+  // so any future manual theme choice is preserved.
+  const THEME_MIGRATION_KEY = "canons:theme-migrated:v1";
+  try {
+    if (!localStorage.getItem(THEME_MIGRATION_KEY)) {
+      localStorage.setItem(THEME_KEY, DEFAULT_THEME);
+      localStorage.setItem(THEME_MIGRATION_KEY, "1");
+    }
+  } catch (e) { /* storage unavailable */ }
+
   // Apply immediately so there's no flash of the default theme.
   applyTheme(currentThemeId());
 

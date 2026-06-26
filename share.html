@@ -28,7 +28,10 @@
 
         function decode(encoded) {
           try {
-            return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+            // Restore URL-safe base64 to standard and re-add padding.
+            const b64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+            const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
+            return JSON.parse(decodeURIComponent(escape(atob(padded))));
           } catch (e) {
             return null;
           }
@@ -62,7 +65,7 @@
         }
 
         // ---- decode ----
-        const params = new URLSearchParams(location.hash.slice(1));
+        const params = new URLSearchParams(location.search);
         const wine = decode(params.get("d"));
         const card = document.getElementById("wine-card");
 

@@ -878,10 +878,25 @@
 
   detailShareBtn.addEventListener("click", () => {
     if (!currentWine) return;
-    const json = JSON.stringify(currentWine);
-    const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+    // Only encode the fields needed for the read-only view — omitting id,
+    // dates, status, bottles, user_notes, label_photo, winemakers, sources,
+    // confidence_flags keeps the URL short enough for messaging apps.
+    const shareData = {
+      producer:      currentWine.producer,
+      cuvee:         currentWine.cuvee,
+      vintage:       currentWine.vintage,
+      tech_facts:    currentWine.tech_facts,
+      vinification:  currentWine.vinification,
+      tasting_notes: currentWine.tasting_notes,
+      expert_context: currentWine.expert_context,
+    };
+    const json = JSON.stringify(shareData);
+    // URL-safe base64 (no % encoding) keeps the URL compact and avoids
+    // messaging apps splitting on encoded characters.
+    const encoded = btoa(unescape(encodeURIComponent(json)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
     const base = location.href.replace(/\/[^/]*([?#].*)?$/, "/");
-    const url = `${base}share.html#d=${encoded}`;
+    const url = `${base}share.html?d=${encoded}`;
     navigator.clipboard.writeText(url).then(() => {
       detailShareBtn.textContent = "copied!";
       setTimeout(() => { detailShareBtn.textContent = "share"; }, 2000);

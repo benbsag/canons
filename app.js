@@ -40,7 +40,9 @@
   const THEMES = [
     { id: "paper", label: "Paper", swatches: ["#f3ede1", "#1c1a17", "#8e3b2f"] },
     { id: "marble", label: "Marble", swatches: ["#eef0ec", "#20231f", "#3f5c4c"] },
-    { id: "swiss-white", label: "Swiss White", swatches: ["#ffffff", "#000000"] },
+    { id: "klein", label: "Klein", swatches: ["#f4eedf", "#002fa7"] },
+    { id: "chartreuse", label: "Chartreuse", swatches: ["#222818", "#d4f040"] },
+    { id: "swiss-white", label: "Swiss White", swatches: ["#f3ede1", "#000000"] },
     { id: "swiss-black", label: "Swiss Black", swatches: ["#000000", "#ffffff"] },
     { id: "swiss-primary", label: "Swiss Primary", swatches: ["#e30613", "#0047ff", "#00a14b", "#c8930a"] },
     { id: "comic", label: "Comic", swatches: ["#e6261f", "#f7c000", "#3aa53b", "#1f8fd6", "#8e44ad"] },

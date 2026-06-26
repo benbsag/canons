@@ -58,6 +58,45 @@
   --accent: #3f5c4c;
 }
 
+/* Klein — warm cream ground with International Klein Blue throughout. */
+[data-theme="klein"] {
+  --paper: #f4eedf;
+  --ink: #002fa7;
+  --muted: #6070b8;
+  --hairline: #c8c8e0;
+  --accent: #002fa7;
+}
+
+/* Chartreuse — deep olive-brown ground, chartreuse ink and accent. */
+[data-theme="chartreuse"] {
+  --paper: #222818;
+  --ink: #d4f040;
+  --muted: #7a9038;
+  --hairline: #3a4222;
+  --accent: #d4f040;
+  color-scheme: dark;
+}
+
+/* Normalise the stamp blend on Klein (blue on cream reads fine multiply, but
+   IKB is dark enough to drop to a simple overlay; opacity keeps the faded look). */
+html[data-theme="klein"] .stamp {
+  mix-blend-mode: normal;
+}
+
+/* On the dark chartreuse ground, multiply washes the stamp out — use normal. */
+html[data-theme="chartreuse"] .stamp {
+  mix-blend-mode: normal;
+  opacity: 0.65;
+}
+
+/* Chartreuse save/add buttons: dark ink on chartreuse so they stay readable. */
+html[data-theme="chartreuse"] .add-btn-large,
+html[data-theme="chartreuse"] .research-trigger,
+html[data-theme="chartreuse"] .save-btn,
+html[data-theme="chartreuse"] .detail-save-top {
+  color: #222818;
+}
+
 /* ---- Swiss / International Typographic Style ----------------------------
    Space Grotesk throughout, larger and bolder, no italics. The three Swiss
    themes share this typography and differ only in palette. Overriding the
@@ -69,10 +108,10 @@
 }
 
 [data-theme="swiss-white"] {
-  --paper: #ffffff;
+  --paper: #f3ede1;
   --ink: #000000;
   --muted: #6f6f6f;
-  --hairline: #e4e4e4;
+  --hairline: #ddd8cc;
   --accent: #000000;
 }
 

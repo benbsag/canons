@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="paper">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>CANONS</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+
+      <header class="app-header">
+        <div class="brand-row">
+          <p class="brand">CANONS</p>
+        </div>
+      </header>
+
+      <main id="wine-card"></main>
+
+    </div>
+
+    <script>
+      (function () {
+
+        function decode(encoded) {
+          try {
+            return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function esc(str) {
+          return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        }
+
+        // Inline field: label + plain value
+        function inlineField(label, value) {
+          if (!value) return "";
+          return `
+            <div class="field">
+              <label>${esc(label)}</label>
+              <p class="share-value">${esc(value)}</p>
+            </div>`;
+        }
+
+        // Narrative block: section heading + serif paragraph
+        function narrativeBlock(label, value) {
+          if (!value) return "";
+          return `
+            <p class="section-label">${esc(label)}</p>
+            <div class="field">
+              <p class="share-narrative">${esc(value)}</p>
+            </div>`;
+        }
+
+        // ---- decode ----
+        const params = new URLSearchParams(location.hash.slice(1));
+        const wine = decode(params.get("d"));
+        const card = document.getElementById("wine-card");
+
+        if (!wine) {
+          card.innerHTML = '<p class="empty-state">This link doesn\'t look right.</p>';
+          return;
+        }
+
+        // Page title
+        const titleParts = [wine.producer, wine.cuvee].filter(Boolean);
+        document.title = (titleParts.join(" — ") || "Wine") + " — CANONS";
+
+        const tf = wine.tech_facts || {};
+        const tn = wine.tasting_notes || {};
+
+        // Subtitle line: colour · region · country
+        const subParts = [tf.colour, tf.region, tf.country].filter(Boolean);
+
+        card.innerHTML = `
+          <style>
+            .share-hero {
+              margin-bottom: var(--space-5);
+              padding-bottom: var(--space-4);
+              border-bottom: 1px solid var(--hairline);
+            }
+            .share-hero .wine-producer { margin: 0 0 4px; }
+            .share-hero .wine-cuvee   { margin: 0 0 var(--space-2); }
+            .share-sub {
+              font-family: var(--font-mono);
+              font-size: 12px;
+              letter-spacing: 0.1em;
+              text-transform: lowercase;
+              color: var(--muted);
+              margin: var(--space-2) 0 0;
+            }
+            .share-value {
+              font-family: var(--font-mono);
+              font-size: 15px;
+              color: var(--ink);
+              margin: 2px 0 0;
+              padding-bottom: 6px;
+              border-bottom: 1px solid var(--hairline);
+            }
+            .share-narrative {
+              font-family: var(--font-serif);
+              font-size: 16px;
+              line-height: 1.6;
+              color: var(--ink);
+              margin: 0;
+              padding-bottom: var(--space-3);
+            }
+            .share-footer {
+              margin-top: var(--space-6);
+              padding-top: var(--space-3);
+              border-top: 1px solid var(--hairline);
+              font-family: var(--font-mono);
+              font-size: 11px;
+              letter-spacing: 0.12em;
+              text-transform: lowercase;
+              color: var(--muted);
+            }
+          </style>
+
+          <div class="share-hero">
+            <p class="wine-producer">${esc(wine.producer || "")}</p>
+            <p class="wine-cuvee">${esc(wine.cuvee || "")}</p>
+            ${wine.vintage ? `<span class="wine-vintage">${esc(wine.vintage)}</span>` : ""}
+            ${subParts.length ? `<p class="share-sub">${esc(subParts.join(" · "))}</p>` : ""}
+          </div>
+
+          ${inlineField("grape varietals", tf.grape_varietals)}
+          ${inlineField("terroir", tf.terroir_type)}
+          ${narrativeBlock("vinification", wine.vinification)}
+          ${narrativeBlock("tasting notes", tn.notes)}
+          ${inlineField("drinking window", tn.drinking_window)}
+          ${narrativeBlock("context", wine.expert_context)}
+
+          <p class="share-footer">shared via canons</p>
+        `;
+
+      })();
+    </script>
+  </body>
+</html>

@@ -172,6 +172,7 @@
 
   const detailBackBtn = document.getElementById("detail-back-btn");
   const detailDeleteBtn = document.getElementById("detail-delete-btn");
+  const detailShareBtn = document.getElementById("detail-share-btn");
   const detailForm = document.getElementById("detail-form");
   const detailSaveTop = document.getElementById("detail-save-top");
   const detailFieldsContainer = document.getElementById("detail-fields");
@@ -873,6 +874,20 @@
   detailBackBtn.addEventListener("click", () => {
     showView("home");
     render(filterInput.value);
+  });
+
+  detailShareBtn.addEventListener("click", () => {
+    if (!currentWine) return;
+    const json = JSON.stringify(currentWine);
+    const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+    const base = location.href.replace(/\/[^/]*([?#].*)?$/, "/");
+    const url = `${base}share.html#d=${encoded}`;
+    navigator.clipboard.writeText(url).then(() => {
+      detailShareBtn.textContent = "copied!";
+      setTimeout(() => { detailShareBtn.textContent = "share"; }, 2000);
+    }).catch(() => {
+      prompt("Copy this link:", url);
+    });
   });
 
   detailDeleteBtn.addEventListener("click", () => {

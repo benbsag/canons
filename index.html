@@ -84,7 +84,10 @@
         <header class="view-header">
           <button class="action-link" type="button" id="detail-back-btn">‹ back</button>
           <button type="button" class="detail-save-top" id="detail-save-top" hidden>save</button>
-          <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
+          <div style="display:flex;gap:var(--space-3);align-items:baseline">
+            <button class="action-link action-link--quiet" type="button" id="detail-share-btn">share</button>
+            <button class="action-link action-link--quiet" type="button" id="detail-delete-btn">remove</button>
+          </div>
         </header>
 
         <p class="meta-line" id="detail-meta"></p>

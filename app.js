@@ -876,33 +876,53 @@
     render(filterInput.value);
   });
 
-  detailShareBtn.addEventListener("click", () => {
+  detailShareBtn.addEventListener("click", async () => {
     if (!currentWine) return;
-    // Only encode the fields needed for the read-only view — omitting id,
-    // dates, status, bottles, user_notes, label_photo, winemakers, sources,
-    // confidence_flags keeps the URL short enough for messaging apps.
+
+    const syncConfig = WineCave.sync.getConfig(); // { url, key, code } | null
+    if (!syncConfig) {
+      alert("Sharing needs sync to be set up (Settings → Data & Sync).");
+      return;
+    }
+
+    // Only share the fields needed for the read-only view.
     const shareData = {
-      producer:      currentWine.producer,
-      cuvee:         currentWine.cuvee,
-      vintage:       currentWine.vintage,
-      tech_facts:    currentWine.tech_facts,
-      vinification:  currentWine.vinification,
-      tasting_notes: currentWine.tasting_notes,
+      producer:       currentWine.producer,
+      cuvee:          currentWine.cuvee,
+      vintage:        currentWine.vintage,
+      tech_facts:     currentWine.tech_facts,
+      vinification:   currentWine.vinification,
+      tasting_notes:  currentWine.tasting_notes,
       expert_context: currentWine.expert_context,
     };
-    const json = JSON.stringify(shareData);
-    // URL-safe base64 (no % encoding) keeps the URL compact and avoids
-    // messaging apps splitting on encoded characters.
-    const encoded = btoa(unescape(encodeURIComponent(json)))
-      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-    const base = location.href.replace(/\/[^/]*([?#].*)?$/, "/");
-    const url = `${base}share.html?d=${encoded}`;
-    navigator.clipboard.writeText(url).then(() => {
+
+    const prev = detailShareBtn.textContent;
+    detailShareBtn.textContent = "sharing…";
+
+    try {
+      const fnUrl = `${syncConfig.url}/functions/v1/share-wine`;
+      const res = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${syncConfig.key}`,
+          apikey: syncConfig.key,
+        },
+        body: JSON.stringify({ data: shareData }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const { id } = await res.json();
+
+      const base = location.href.replace(/\/[^/]*([?#].*)?$/, "/");
+      const url = `${base}share.html?id=${id}&s=${encodeURIComponent(syncConfig.url)}`;
+
+      await navigator.clipboard.writeText(url).catch(() => prompt("Copy this link:", url));
       detailShareBtn.textContent = "copied!";
-      setTimeout(() => { detailShareBtn.textContent = "share"; }, 2000);
-    }).catch(() => {
-      prompt("Copy this link:", url);
-    });
+      setTimeout(() => { detailShareBtn.textContent = prev; }, 2000);
+    } catch (err) {
+      detailShareBtn.textContent = prev;
+      alert("Couldn't create share link — check your sync connection.");
+    }
   });
 
   detailDeleteBtn.addEventListener("click", () => {

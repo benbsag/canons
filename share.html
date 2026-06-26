@@ -9,6 +9,50 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .share-hero {
+        margin-bottom: var(--space-5);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--hairline);
+      }
+      .share-hero .wine-producer { margin: 0 0 4px; }
+      .share-hero .wine-cuvee   { margin: 0 0 var(--space-2); }
+      .share-sub {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: lowercase;
+        color: var(--muted);
+        margin: var(--space-2) 0 0;
+      }
+      .share-value {
+        font-family: var(--font-mono);
+        font-size: 15px;
+        color: var(--ink);
+        margin: 2px 0 0;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--hairline);
+      }
+      .share-narrative {
+        font-family: var(--font-serif);
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--ink);
+        margin: 0;
+        padding-bottom: var(--space-3);
+        white-space: pre-wrap;
+      }
+      .share-footer {
+        margin-top: var(--space-6);
+        padding-top: var(--space-3);
+        border-top: 1px solid var(--hairline);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: lowercase;
+        color: var(--muted);
+      }
+    </style>
   </head>
   <body>
     <div class="app">
@@ -19,132 +63,83 @@
         </div>
       </header>
 
-      <main id="wine-card"></main>
+      <main id="wine-card">
+        <p class="empty-state">loading…</p>
+      </main>
 
     </div>
 
     <script>
       (function () {
 
-        function decode(encoded) {
-          try {
-            // Restore URL-safe base64 to standard and re-add padding.
-            const b64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
-            const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
-            return JSON.parse(decodeURIComponent(escape(atob(padded))));
-          } catch (e) {
-            return null;
-          }
-        }
-
         function esc(str) {
-          return String(str)
+          return String(str || "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;");
         }
 
-        // Inline field: label + plain value
         function inlineField(label, value) {
           if (!value) return "";
-          return `
-            <div class="field">
-              <label>${esc(label)}</label>
-              <p class="share-value">${esc(value)}</p>
-            </div>`;
+          return `<div class="field"><label>${esc(label)}</label><p class="share-value">${esc(value)}</p></div>`;
         }
 
-        // Narrative block: section heading + serif paragraph
         function narrativeBlock(label, value) {
           if (!value) return "";
-          return `
-            <p class="section-label">${esc(label)}</p>
-            <div class="field">
-              <p class="share-narrative">${esc(value)}</p>
-            </div>`;
+          return `<p class="section-label">${esc(label)}</p><div class="field"><p class="share-narrative">${esc(value)}</p></div>`;
         }
 
-        // ---- decode ----
-        const params = new URLSearchParams(location.search);
-        const wine = decode(params.get("d"));
-        const card = document.getElementById("wine-card");
+        function render(wine) {
+          const tf  = wine.tech_facts   || {};
+          const tn  = wine.tasting_notes || {};
+          const sub = [tf.colour, tf.region, tf.country].filter(Boolean);
+          const card = document.getElementById("wine-card");
 
-        if (!wine) {
-          card.innerHTML = '<p class="empty-state">This link doesn\'t look right.</p>';
+          document.title = [wine.producer, wine.cuvee].filter(Boolean).join(" — ") + " — CANONS";
+
+          card.innerHTML = `
+            <div class="share-hero">
+              <p class="wine-producer">${esc(wine.producer)}</p>
+              <p class="wine-cuvee">${esc(wine.cuvee)}</p>
+              ${wine.vintage ? `<span class="wine-vintage">${esc(wine.vintage)}</span>` : ""}
+              ${sub.length ? `<p class="share-sub">${esc(sub.join(" · "))}</p>` : ""}
+            </div>
+            ${inlineField("grape varietals", tf.grape_varietals)}
+            ${inlineField("terroir", tf.terroir_type)}
+            ${narrativeBlock("vinification", wine.vinification)}
+            ${narrativeBlock("tasting notes", tn.notes)}
+            ${inlineField("drinking window", tn.drinking_window)}
+            ${narrativeBlock("context", wine.expert_context)}
+            <p class="share-footer">shared via canons</p>
+          `;
+        }
+
+        function showError(msg) {
+          document.getElementById("wine-card").innerHTML =
+            `<p class="empty-state">${esc(msg)}</p>`;
+        }
+
+        const params  = new URLSearchParams(location.search);
+        const id      = params.get("id");
+        const sBase   = params.get("s");
+
+        if (!id || !sBase) {
+          showError("This link doesn't look right.");
           return;
         }
 
-        // Page title
-        const titleParts = [wine.producer, wine.cuvee].filter(Boolean);
-        document.title = (titleParts.join(" — ") || "Wine") + " — CANONS";
+        const fnUrl = `${sBase}/functions/v1/share-wine?id=${encodeURIComponent(id)}`;
 
-        const tf = wine.tech_facts || {};
-        const tn = wine.tasting_notes || {};
-
-        // Subtitle line: colour · region · country
-        const subParts = [tf.colour, tf.region, tf.country].filter(Boolean);
-
-        card.innerHTML = `
-          <style>
-            .share-hero {
-              margin-bottom: var(--space-5);
-              padding-bottom: var(--space-4);
-              border-bottom: 1px solid var(--hairline);
-            }
-            .share-hero .wine-producer { margin: 0 0 4px; }
-            .share-hero .wine-cuvee   { margin: 0 0 var(--space-2); }
-            .share-sub {
-              font-family: var(--font-mono);
-              font-size: 12px;
-              letter-spacing: 0.1em;
-              text-transform: lowercase;
-              color: var(--muted);
-              margin: var(--space-2) 0 0;
-            }
-            .share-value {
-              font-family: var(--font-mono);
-              font-size: 15px;
-              color: var(--ink);
-              margin: 2px 0 0;
-              padding-bottom: 6px;
-              border-bottom: 1px solid var(--hairline);
-            }
-            .share-narrative {
-              font-family: var(--font-serif);
-              font-size: 16px;
-              line-height: 1.6;
-              color: var(--ink);
-              margin: 0;
-              padding-bottom: var(--space-3);
-            }
-            .share-footer {
-              margin-top: var(--space-6);
-              padding-top: var(--space-3);
-              border-top: 1px solid var(--hairline);
-              font-family: var(--font-mono);
-              font-size: 11px;
-              letter-spacing: 0.12em;
-              text-transform: lowercase;
-              color: var(--muted);
-            }
-          </style>
-
-          <div class="share-hero">
-            <p class="wine-producer">${esc(wine.producer || "")}</p>
-            <p class="wine-cuvee">${esc(wine.cuvee || "")}</p>
-            ${wine.vintage ? `<span class="wine-vintage">${esc(wine.vintage)}</span>` : ""}
-            ${subParts.length ? `<p class="share-sub">${esc(subParts.join(" · "))}</p>` : ""}
-          </div>
-
-          ${inlineField("grape varietals", tf.grape_varietals)}
-          ${inlineField("terroir", tf.terroir_type)}
-          ${narrativeBlock("vinification", wine.vinification)}
-          ${narrativeBlock("tasting notes", tn.notes)}
-          ${inlineField("drinking window", tn.drinking_window)}
-          ${narrativeBlock("context", wine.expert_context)}
-
-          <p class="share-footer">shared via canons</p>
-        `;
+        fetch(fnUrl)
+          .then((r) => {
+            if (!r.ok) throw new Error(r.status === 404 ? "Wine not found." : `Error ${r.status}.`);
+            return r.json();
+          })
+          .then(({ data }) => {
+            if (!data) throw new Error("Empty response.");
+            render(data);
+          })
+          .catch((err) => showError(err.message || "Couldn't load this wine."));
 
       })();
     </script>

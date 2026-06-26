@@ -69,10 +69,10 @@
 
 /* Chartreuse — deep olive-brown ground, chartreuse ink and accent. */
 [data-theme="chartreuse"] {
-  --paper: #222818;
+  --paper: #1e1a0e;
   --ink: #d4f040;
   --muted: #7a9038;
-  --hairline: #3a4222;
+  --hairline: #332e18;
   --accent: #d4f040;
   color-scheme: dark;
 }

@@ -102,7 +102,9 @@ html[data-theme="chartreuse"] .detail-save-top {
    themes share this typography and differ only in palette. Overriding the
    font variables flips every component to Space Grotesk in one move. */
 
-[data-theme^="swiss"] {
+[data-theme^="swiss"],
+[data-theme="klein"],
+[data-theme="chartreuse"] {
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
 }
@@ -231,6 +233,82 @@ html[data-theme^="swiss"] .save-btn {
 html[data-theme^="swiss"] .stamp {
   mix-blend-mode: normal;
   opacity: 0.85;
+  font-weight: 700;
+}
+
+/* Klein and Chartreuse share the full Swiss typographic treatment. */
+html[data-theme="klein"] body,
+html[data-theme="chartreuse"] body {
+  font-size: 17px;
+}
+
+html[data-theme="klein"] .brand,
+html[data-theme="chartreuse"] .brand {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+html[data-theme="klein"] .brand-row .brand,
+html[data-theme="chartreuse"] .brand-row .brand {
+  font-size: 36px;
+}
+
+html[data-theme="klein"] .region-label,
+html[data-theme="chartreuse"] .region-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+html[data-theme="klein"] .wine-producer,
+html[data-theme="chartreuse"] .wine-producer {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+html[data-theme="klein"] .wine-cuvee,
+html[data-theme="chartreuse"] .wine-cuvee {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 23px;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="klein"] .wine-vintage,
+html[data-theme="chartreuse"] .wine-vintage {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+html[data-theme="klein"] .field-cuvee textarea,
+html[data-theme="chartreuse"] .field-cuvee textarea {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 20px;
+}
+
+html[data-theme="klein"] .section-label,
+html[data-theme="chartreuse"] .section-label {
+  font-weight: 700;
+}
+
+html[data-theme="klein"] .add-btn-large,
+html[data-theme="klein"] .research-trigger,
+html[data-theme="klein"] .save-btn,
+html[data-theme="chartreuse"] .add-btn-large,
+html[data-theme="chartreuse"] .research-trigger,
+html[data-theme="chartreuse"] .save-btn {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+html[data-theme="klein"] .stamp,
+html[data-theme="chartreuse"] .stamp {
   font-weight: 700;
 }
 

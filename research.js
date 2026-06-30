@@ -32,6 +32,9 @@
     { key: "vinification", label: "vinification" },
     { key: "tasting_notes", label: "tasting notes" },
     { key: "drinking_window", label: "drinking window" },
+    { key: "serve_temp", label: "serving temperature" },
+    { key: "serve_aeration", label: "decant / aeration" },
+    { key: "serve_archetype", label: "style (glou-glou ↔ garde)" },
     { key: "expert_context", label: "context" },
   ];
 
@@ -55,6 +58,12 @@
         return (wine.tasting_notes && wine.tasting_notes.notes) || "";
       case "drinking_window":
         return (wine.tasting_notes && wine.tasting_notes.drinking_window) || "";
+      case "serve_temp":
+        return (wine.serving && wine.serving.temp) || "";
+      case "serve_aeration":
+        return (wine.serving && wine.serving.aeration) || "";
+      case "serve_archetype":
+        return (wine.serving && wine.serving.archetype) || "";
       default:
         return (wine.tech_facts && wine.tech_facts[key]) || "";
     }
@@ -84,6 +93,15 @@
         break;
       case "drinking_window":
         wine.tasting_notes = { ...wine.tasting_notes, drinking_window: value };
+        break;
+      case "serve_temp":
+        wine.serving = { ...wine.serving, temp: value };
+        break;
+      case "serve_aeration":
+        wine.serving = { ...wine.serving, aeration: value };
+        break;
+      case "serve_archetype":
+        wine.serving = { ...wine.serving, archetype: value };
         break;
       default:
         wine.tech_facts = { ...wine.tech_facts, [key]: value };
@@ -119,6 +137,9 @@
       vinification: { value: "concrete facts only — maceration, élevage, vessel, ageing", confidence: "..." },
       tasting_notes: { value: "", confidence: "..." },
       drinking_window: { value: "e.g. now–2030", confidence: "..." },
+      serve_temp: { value: "ideal serving temperature, e.g. 14–16 °C", confidence: "..." },
+      serve_aeration: { value: "decant / aeration advice, e.g. decant 30 min, or none", confidence: "..." },
+      serve_archetype: { value: "glou-glou, vin de garde, or in between", confidence: "..." },
       expert_context: {
         value: "subjective context a natural-wine insider would value (see rules)",
         confidence: "...",
@@ -145,6 +166,10 @@
       '- If a fact is not found, still include the field with value "" and',
       '  confidence "not_found".',
       "- Keep vinification and tasting notes factual and concise.",
+      '- "serve_temp" is the ideal serving temperature (a range is fine).',
+      '  "serve_aeration" is decanting/aeration advice — say so if none is needed.',
+      '  "serve_archetype" places the wine on the glou-glou (easy, chillable,',
+      "  drink-young) to vin de garde (structured, ageworthy) spectrum.",
       '- "expert_context" is the one subjective field. Write 2–4 sentences of the',
       "  context a knowledgeable natural-wine person would care about: where this",
       "  cuvée sits in the producer's lineup, how it compares to peer producers and",
@@ -292,6 +317,7 @@
       ...wine,
       tech_facts: { ...wine.tech_facts },
       tasting_notes: { ...wine.tasting_notes },
+      serving: { ...wine.serving },
       confidence_flags: { ...wine.confidence_flags },
       sources: [...(wine.sources || [])],
       winemakers: (wine.winemakers || []).map((w) => ({ ...w })),

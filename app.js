@@ -231,6 +231,9 @@
       vinification: container.querySelector(".f-vinification"),
       tastingNotes: container.querySelector(".f-tasting-notes"),
       drinkingWindow: container.querySelector(".f-drinking-window"),
+      serveTemp: container.querySelector(".f-serve-temp"),
+      serveAeration: container.querySelector(".f-serve-aeration"),
+      serveArchetype: container.querySelector(".f-serve-archetype"),
       expertContext: container.querySelector(".f-expert-context"),
       bottlesInput: container.querySelector(".f-bottles"),
       bottlesMinus: container.querySelector(".bottles-minus"),
@@ -359,6 +362,9 @@
     refs.vinification.value = wine.vinification || "";
     refs.tastingNotes.value = wine.tasting_notes?.notes || "";
     refs.drinkingWindow.value = wine.tasting_notes?.drinking_window || "";
+    refs.serveTemp.value = wine.serving?.temp || "";
+    refs.serveAeration.value = wine.serving?.aeration || "";
+    refs.serveArchetype.value = wine.serving?.archetype || "";
     refs.expertContext.value = wine.expert_context || "";
     refs.bottlesInput.value = clampBottles(wine.bottles ?? 1);
     refs.userNotes.value = wine.user_notes || "";
@@ -442,6 +448,12 @@
         ...base.tasting_notes,
         notes: refs.tastingNotes.value.trim(),
         drinking_window: refs.drinkingWindow.value.trim(),
+      },
+      serving: {
+        ...base.serving,
+        temp: refs.serveTemp.value.trim(),
+        aeration: refs.serveAeration.value.trim(),
+        archetype: refs.serveArchetype.value.trim(),
       },
       expert_context: refs.expertContext.value.trim(),
       user_notes: refs.userNotes.value.trim(),

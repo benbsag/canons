@@ -115,6 +115,15 @@
         drinking_window: "",
         ...(partial.tasting_notes || {}),
       },
+      // Serving guide — left blank until known (manually or via research).
+      // temp: serving temperature; aeration: decant/aeration note;
+      // archetype: glou-glou vs vin de garde (and shades between).
+      serving: {
+        temp: "",
+        aeration: "",
+        archetype: "",
+        ...(partial.serving || {}),
+      },
       winemakers: partial.winemakers ?? [],
       sources: partial.sources ?? [],
       confidence_flags: partial.confidence_flags ?? {},
